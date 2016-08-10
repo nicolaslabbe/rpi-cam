@@ -4,7 +4,7 @@ import path from 'path'
 import Camera from './camera'
 
 var app = express()
-var port = 80
+var port = 8000
 
 var html = exphbs.create({extname: '.html'})
 
