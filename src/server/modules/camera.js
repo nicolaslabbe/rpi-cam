@@ -8,7 +8,7 @@ export default class Camera {
         var p = new Promise((resolve, reject) => {
             var saveTo = "./src/server/screenshot/"
             var webPath = "/screenshot/"
-            var name = "cam.jpg"
+            var name = 'cam-' + new Date().getTime() + '.jpg'
 
             var defaultOptions = {
                 mode: "photo",
@@ -21,8 +21,6 @@ export default class Camera {
             }
 
             defaultOptions = extend(defaultOptions, options)
-            console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-            console.log('defaultOptions', defaultOptions)
 
             if (Config.instance.env === 'dev') {
                 resolve(webPath + name);

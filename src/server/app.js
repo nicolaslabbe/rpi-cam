@@ -5,6 +5,7 @@ import path from 'path'
 import fs from 'fs'
 import Camera from './modules/camera'
 import Config from './modules/config'
+import Images from './modules/images'
 
 var app = express()
 var port = 8000
@@ -47,14 +48,17 @@ app.get('/reload', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-	var index = __dirname + '/views/index.html'
-	var html = fs.readFileSync(index, 'utf8')
+	Images.instance.read()
+		.then((images) => {
+			var index = __dirname + '/views/index.html'
+			var html = fs.readFileSync(index, 'utf8')
 
-	var template = Handlebars.compile(html, {noEscape: true})
-	var tmp = template({img: "/screenshot/cam.jpg"})
-	
-	res.set('Content-Type', 'text/html')
-	return res.send(tmp);
+			var template = Handlebars.compile(html, {noEscape: true})
+			var tmp = template({images: images})
+			
+			res.set('Content-Type', 'text/html')
+			return res.send(tmp);
+		})
 });
 
 app.listen(port, function () {
