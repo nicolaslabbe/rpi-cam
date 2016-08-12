@@ -17,14 +17,27 @@ app.engine('html', html.engine)
 app.set('view engine', 'html')
 
 app.get('/reload', (req, res) => {
-	new Camera()
-		.then((img) => {
-			res.set('Content-Type', 'application/json')
-			res.send({
-				status: 'sucess',
-				img: img
+	if (Config.instance.env === 'dev') {
+        setTimeout(() => {
+        	new Camera()
+			.then((img) => {
+				res.set('Content-Type', 'application/json')
+				res.send({
+					status: 'sucess',
+					img: img
+				})
 			})
-		})
+        }, 2000)
+    }else {
+		new Camera()
+			.then((img) => {
+				res.set('Content-Type', 'application/json')
+				res.send({
+					status: 'sucess',
+					img: img
+				})
+			})
+    }
 });
 
 app.get('/', (req, res) => {
