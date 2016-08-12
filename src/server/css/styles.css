@@ -21,7 +21,6 @@ body {
 }
 
 .fixed-action-btn.done .btn-floating.btn-large {
-	box-shadow: none;
 	opacity: 1;
 	animation: loadDone 0.5s ease-out forwards;
 }

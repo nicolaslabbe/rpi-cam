@@ -1,18 +1,14 @@
 $(document).ready(function(){
 	// $('.materialboxed').materialbox();
 	
-	var actionBtn = document.querySelector('[data-btn-action="true"]')
-	var loadBtn = document.querySelector('[data-btn-load="true"]')
-
-	var reload = document.querySelector('[data-reload="true"]')
-	var cardImg = document.querySelector('[data-card-img="true"]')
-	reload.addEventListener('click', function (e) {
-		actionBtn.classList.remove('active')
+	function newImg(type) {
+		$('.fixed-action-btn').closeFAB();
+		actionBtn.blur()
 		actionBtn.classList.remove('done')
 		actionBtn.classList.add('load')
 		loadBtn.classList.remove('hide')
 		$.ajax({
-			url: '/reload',
+			url: '/' + type,
 			success: function (e) {
 				cardImg.src = e.img
 				actionBtn.classList.remove('load')
@@ -20,14 +16,19 @@ $(document).ready(function(){
 				loadBtn.classList.add('hide')
 			}
 		});
+	}
+	
+	var actionBtn = document.querySelector('[data-btn-action="true"]')
+	var loadBtn = document.querySelector('[data-btn-load="true"]')
+	var cardImg = document.querySelector('[data-card-img="true"]')
+
+	var reload = document.querySelector('[data-reload="true"]')
+	reload.addEventListener('click', function (e) {
+		newImg('reload')
 	})
 
+	var reload = document.querySelector('[data-reload-sharp="true"]')
 	reload.addEventListener('click', function (e) {
-		$.ajax({
-			url: '/reload',
-			success: function (e) {
-				 cardImg.src = e.img
-			}
-		});
+		newImg('sharpness')
 	})
 });

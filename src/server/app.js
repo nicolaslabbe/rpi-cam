@@ -16,42 +16,37 @@ app.set('views', path.join(__dirname, '/views'))
 app.engine('html', html.engine)
 app.set('view engine', 'html')
 
+function make(req, res, options = {}) {
+	var time = Config.instance.env === 'dev' ? 2000 : 0
+    setTimeout(() => {
+    	new Camera(options)
+		.then((img) => {
+			res.set('Content-Type', 'application/json')
+			res.send({
+				status: 'sucess',
+				img: img
+			})
+		})
+    }, time)
+}
+
+app.get('/sharpness', (req, res) => {
+	make(req, res, {sharpness: -100})
+});
+
 app.get('/reload', (req, res) => {
-	if (Config.instance.env === 'dev') {
-        setTimeout(() => {
-        	new Camera()
-			.then((img) => {
-				res.set('Content-Type', 'application/json')
-				res.send({
-					status: 'sucess',
-					img: img
-				})
-			})
-        }, 2000)
-    }else {
-		new Camera()
-			.then((img) => {
-				res.set('Content-Type', 'application/json')
-				res.send({
-					status: 'sucess',
-					img: img
-				})
-			})
-    }
+	make(req, res)
 });
 
 app.get('/', (req, res) => {
-	new Camera()
-		.then((img) => {
-			var index = __dirname + '/views/index.html'
-			var html = fs.readFileSync(index, 'utf8')
+	var index = __dirname + '/views/index.html'
+	var html = fs.readFileSync(index, 'utf8')
 
-			var template = Handlebars.compile(html, {noEscape: true})
-			var tmp = template({img: img})
-			
-			res.set('Content-Type', 'text/html')
-			return res.send(tmp);
-		})
+	var template = Handlebars.compile(html, {noEscape: true})
+	var tmp = template({img: "/screenshot/cam.jpg"})
+	
+	res.set('Content-Type', 'text/html')
+	return res.send(tmp);
 });
 
 app.listen(port, function () {
