@@ -17,7 +17,7 @@ nodemon({
     js: __dirname + '/../../node_modules/.bin/babel-node --presets es2015'
   },
   env: {
-    'NODE_ENV': 'development'
+    'NODE_ENV': 'dev'
   },
   ignore: [
     "docs/*"
