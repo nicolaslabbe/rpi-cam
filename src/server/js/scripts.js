@@ -27,8 +27,18 @@ $(document).ready(function(){
 		newImg('reload')
 	})
 
-	var reload = document.querySelector('[data-reload-sharp="true"]')
-	reload.addEventListener('click', function (e) {
+	var sharpness = document.querySelector('[data-reload-sharpness="true"]')
+	sharpness.addEventListener('click', function (e) {
+		newImg('sharpness')
+	})
+
+	var brightness = document.querySelector('[data-reload-brightness="true"]')
+	brightness.addEventListener('click', function (e) {
+		newImg('brightness')
+	})
+
+	var saturation = document.querySelector('[data-reload-saturation="true"]')
+	saturation.addEventListener('click', function (e) {
 		newImg('saturation')
 	})
 });

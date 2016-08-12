@@ -38,6 +38,10 @@ app.get('/sharpness', (req, res) => {
 	make(req, res, {sharpness: -100})
 });
 
+app.get('/brightness', (req, res) => {
+	make(req, res, {brightness: 50})
+});
+
 app.get('/reload', (req, res) => {
 	make(req, res)
 });
