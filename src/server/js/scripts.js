@@ -29,6 +29,6 @@ $(document).ready(function(){
 
 	var reload = document.querySelector('[data-reload-sharp="true"]')
 	reload.addEventListener('click', function (e) {
-		newImg('sharpness')
+		newImg('saturation')
 	})
 });

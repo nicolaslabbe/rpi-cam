@@ -21,6 +21,8 @@ export default class Camera {
             }
 
             defaultOptions = extend(defaultOptions, options)
+            console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+            console.log('defaultOptions', defaultOptions)
 
             if (Config.instance.env === 'dev') {
                 resolve(webPath + name);

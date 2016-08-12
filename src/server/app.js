@@ -30,6 +30,10 @@ function make(req, res, options = {}) {
     }, time)
 }
 
+app.get('/saturation', (req, res) => {
+	make(req, res, {saturation: -100})
+});
+
 app.get('/sharpness', (req, res) => {
 	make(req, res, {sharpness: -100})
 });
