@@ -32,7 +32,7 @@ $(document).ready(function(){
 				actionBtn.classList.remove('load')
 				actionBtn.classList.add('done')
 				loadBtn.classList.add('hide')
-				var context = {path: "/screenshot/cam-1471250849612.jpg"};
+				var context = [{path: "/screenshot/cam-1471250849612.jpg"}];
 				addImg(context)
 			}
 		});
