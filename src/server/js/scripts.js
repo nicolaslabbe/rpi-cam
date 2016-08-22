@@ -11,11 +11,6 @@ $(document).ready(function(){
 		var span = document.createElement('span')
 		span.innerHTML = html
 
-		console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-		console.log('context', context)
-		console.log('source', source)
-		console.log('html', html)
-		
 		var firstChild = imagesHolder.firstElementChild
 		if(typeof firstChild !== 'undefined' && firstChild !== null) {
 			imagesHolder.insertBefore(span, firstChild)

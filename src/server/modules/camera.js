@@ -34,8 +34,8 @@ export default class Camera {
 
             // defaultOptions = extend(defaultOptions, options)
 
-            if (Config.instance.env === 'dev') {
-                resolve(webPath + name);
+            if (Config.instance.env === 'development') {
+                resolve(webPath + 'cam.jpg');
             }else {
                 /*
                 --sharpness -100 / 100

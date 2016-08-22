@@ -53,23 +53,15 @@ app.get('/reload', (req, res) => {
 	make(req, res)
 });
 
+var index = __dirname + '/views/index.html'
+var html = fs.readFileSync(index, 'utf8')
+
+var template = Handlebars.compile(html, {noEscape: true})
 app.get('/', (req, res) => {
 	Images.instance.read()
 		.then((images) => {
-			var index = __dirname + '/views/index.html'
-			var html = fs.readFileSync(index, 'utf8')
-
-			var template = Handlebars.compile(html, {noEscape: true})
-			try {
-				var tmp = template({images: images})
-			} catch(e) {
-				// statements
-				console.log(e);
-			}
-			
-			
-			// res.set('Content-Type', 'text/html')
-			// return res.send(html);
+			var tmp = template({images: images})
+			res.set('Content-Type', 'text/html')
 			return res.send(tmp);
 		})
 });

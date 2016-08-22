@@ -8,6 +8,7 @@ class Images {
 
     constructor(enforcer) {
         if(enforcer != singletonEnforcer) throw "Cannot construct singleton";
+        this.init()
     }
 
     static get instance() {
@@ -17,16 +18,30 @@ class Images {
         return this[singleton];
     }
 
+    init() {
+        this._extensions = [/\.jpg/, /\.png/]
+    }
+
     read() {
         var p = new Promise((resolve, reject) => {
             var walker  = walk.walk(__dirname + '/../screenshot', { followLinks: false });
             var files = []
 
-            walker.on('file', function(root, stat, next) {
+            walker.on('file', (root, stat, next) => {
                 // Add this file to the list of files
-                files.push({
-                    path: '/screenshot/' + stat.name
-                });
+                var add = false
+                Array.prototype.forEach.call(this._extensions, (extension) => {
+                    if (extension.test(stat.name)) {
+                        add = true
+                    }
+                })
+                if (add) {
+                    console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+                    console.log('stat.name', stat.name)
+                    files.push({
+                        path: '/screenshot/' + stat.name
+                    }); 
+                }
                 next();
             });
 
