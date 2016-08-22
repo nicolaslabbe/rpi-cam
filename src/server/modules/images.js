@@ -36,8 +36,6 @@ class Images {
                     }
                 })
                 if (add) {
-                    console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-                    console.log('stat.name', stat.name)
                     files.push({
                         path: '/screenshot/' + stat.name
                     }); 

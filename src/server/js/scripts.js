@@ -4,6 +4,8 @@ $(document).ready(function(){
 	var imagesHolder = document.querySelector('[data-image="true"]')
 
 	function addImg(context) {
+		console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+		console.log('addImg', context)
 		var source = document.querySelector('#image-template').innerHTML
 		var template = Handlebars.compile(source);
 		var html    = template(context);
@@ -32,8 +34,7 @@ $(document).ready(function(){
 				actionBtn.classList.remove('load')
 				actionBtn.classList.add('done')
 				loadBtn.classList.add('hide')
-				var context = [{path: "/screenshot/cam-1471250849612.jpg"}];
-				addImg(context)
+				addImg(e)
 			}
 		});
 	}

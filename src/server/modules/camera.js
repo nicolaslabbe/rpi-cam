@@ -34,7 +34,7 @@ export default class Camera {
 
             // defaultOptions = extend(defaultOptions, options)
 
-            if (Config.instance.env === 'development') {
+            if (Config.instance.env === 'dev') {
                 resolve(webPath + 'cam.jpg');
             }else {
                 /*
