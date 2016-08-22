@@ -1,5 +1,7 @@
-import jsonHelper from './json.js'
+import helperJson from './json.js';
+import helperRaw from './raw.js';
 
 export {
-	jsonHelper
+	helperJson
+	,helperRaw
 }

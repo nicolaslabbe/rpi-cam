@@ -17,7 +17,7 @@ class helperJson {
     }
 
     _helper(object) {
-	    return new Handlebars.SafeString(JSON.stringify(object));
+	    return object.fn(this).replace(/\[\[/g, '{{').replace(/\]\]/g, '}}');
 	}
 
     get helper() {

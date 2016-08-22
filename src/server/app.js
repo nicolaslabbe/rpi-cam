@@ -3,12 +3,8 @@ import exphbs from 'express-handlebars'
 import Handlebars from 'handlebars'
 import path from 'path'
 import fs from 'fs'
-import Camera from './modules/camera'
-import Config from './modules/config'
-import Images from './modules/images'
-import JsonHelper from './helpers'
-console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-console.log('JsonHelper', JsonHelper)
+import {Camera, Config, Images} from './modules'
+import {helperJson, helperRaw} from './helpers'
 
 var app = express()
 var port = 8000
@@ -18,8 +14,10 @@ var html = exphbs.create({extname: '.html'})
 app.use(express.static(__dirname))
 app.set('views', path.join(__dirname, '/views'))
 app.engine('html', html.engine)
-Handlebars.registerHelper('toJSON', jsonHelper.instance.helper);
 app.set('view engine', 'html')
+
+Handlebars.registerHelper('toJSON', helperJson.instance.helper);
+Handlebars.registerHelper('raw', helperRaw.instance.helper);
 
 function make(req, res, options = {}) {
 	var time = Config.instance.env === 'dev' ? 2000 : 0
@@ -62,7 +60,13 @@ app.get('/', (req, res) => {
 			var html = fs.readFileSync(index, 'utf8')
 
 			var template = Handlebars.compile(html, {noEscape: true})
-			var tmp = template({images: images})
+			try {
+				var tmp = template({images: images})
+			} catch(e) {
+				// statements
+				console.log(e);
+			}
+			
 			
 			// res.set('Content-Type', 'text/html')
 			// return res.send(html);
