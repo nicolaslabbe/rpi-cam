@@ -231,7 +231,7 @@ function validMime(type) {
   return typeof type === 'string';
 }
 
-},{"mime-types":108,"negotiator":113}],2:[function(require,module,exports){
+},{"mime-types":111,"negotiator":116}],2:[function(require,module,exports){
 (function (__filename){
 /** vim: et:ts=4:sw=4:sts=4
  * @license amdefine 1.0.0 Copyright (c) 2011-2015, The Dojo Foundation All Rights Reserved.
@@ -2115,7 +2115,7 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":112}],14:[function(require,module,exports){
+},{"ms":115}],14:[function(require,module,exports){
 
 /**
  * Module dependencies.
@@ -2384,7 +2384,7 @@ defineProperties.supportsDescriptors = !!supportsDescriptors;
 
 module.exports = defineProperties;
 
-},{"foreach":49,"object-keys":118}],16:[function(require,module,exports){
+},{"foreach":51,"object-keys":121}],16:[function(require,module,exports){
 /*!
  * depd
  * Copyright(c) 2014-2015 Douglas Christopher Wilson
@@ -3335,6 +3335,967 @@ function listener(event, done) {
 
 },{}],23:[function(require,module,exports){
 /*!
+ * @overview es6-promise - a tiny implementation of Promises/A+.
+ * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
+ * @license   Licensed under MIT license
+ *            See https://raw.githubusercontent.com/jakearchibald/es6-promise/master/LICENSE
+ * @version   3.2.1
+ */
+
+(function() {
+    "use strict";
+    function lib$es6$promise$utils$$objectOrFunction(x) {
+      return typeof x === 'function' || (typeof x === 'object' && x !== null);
+    }
+
+    function lib$es6$promise$utils$$isFunction(x) {
+      return typeof x === 'function';
+    }
+
+    function lib$es6$promise$utils$$isMaybeThenable(x) {
+      return typeof x === 'object' && x !== null;
+    }
+
+    var lib$es6$promise$utils$$_isArray;
+    if (!Array.isArray) {
+      lib$es6$promise$utils$$_isArray = function (x) {
+        return Object.prototype.toString.call(x) === '[object Array]';
+      };
+    } else {
+      lib$es6$promise$utils$$_isArray = Array.isArray;
+    }
+
+    var lib$es6$promise$utils$$isArray = lib$es6$promise$utils$$_isArray;
+    var lib$es6$promise$asap$$len = 0;
+    var lib$es6$promise$asap$$vertxNext;
+    var lib$es6$promise$asap$$customSchedulerFn;
+
+    var lib$es6$promise$asap$$asap = function asap(callback, arg) {
+      lib$es6$promise$asap$$queue[lib$es6$promise$asap$$len] = callback;
+      lib$es6$promise$asap$$queue[lib$es6$promise$asap$$len + 1] = arg;
+      lib$es6$promise$asap$$len += 2;
+      if (lib$es6$promise$asap$$len === 2) {
+        // If len is 2, that means that we need to schedule an async flush.
+        // If additional callbacks are queued before the queue is flushed, they
+        // will be processed by this flush that we are scheduling.
+        if (lib$es6$promise$asap$$customSchedulerFn) {
+          lib$es6$promise$asap$$customSchedulerFn(lib$es6$promise$asap$$flush);
+        } else {
+          lib$es6$promise$asap$$scheduleFlush();
+        }
+      }
+    }
+
+    function lib$es6$promise$asap$$setScheduler(scheduleFn) {
+      lib$es6$promise$asap$$customSchedulerFn = scheduleFn;
+    }
+
+    function lib$es6$promise$asap$$setAsap(asapFn) {
+      lib$es6$promise$asap$$asap = asapFn;
+    }
+
+    var lib$es6$promise$asap$$browserWindow = (typeof window !== 'undefined') ? window : undefined;
+    var lib$es6$promise$asap$$browserGlobal = lib$es6$promise$asap$$browserWindow || {};
+    var lib$es6$promise$asap$$BrowserMutationObserver = lib$es6$promise$asap$$browserGlobal.MutationObserver || lib$es6$promise$asap$$browserGlobal.WebKitMutationObserver;
+    var lib$es6$promise$asap$$isNode = typeof self === 'undefined' && typeof process !== 'undefined' && {}.toString.call(process) === '[object process]';
+
+    // test for web worker but not in IE10
+    var lib$es6$promise$asap$$isWorker = typeof Uint8ClampedArray !== 'undefined' &&
+      typeof importScripts !== 'undefined' &&
+      typeof MessageChannel !== 'undefined';
+
+    // node
+    function lib$es6$promise$asap$$useNextTick() {
+      // node version 0.10.x displays a deprecation warning when nextTick is used recursively
+      // see https://github.com/cujojs/when/issues/410 for details
+      return function() {
+        process.nextTick(lib$es6$promise$asap$$flush);
+      };
+    }
+
+    // vertx
+    function lib$es6$promise$asap$$useVertxTimer() {
+      return function() {
+        lib$es6$promise$asap$$vertxNext(lib$es6$promise$asap$$flush);
+      };
+    }
+
+    function lib$es6$promise$asap$$useMutationObserver() {
+      var iterations = 0;
+      var observer = new lib$es6$promise$asap$$BrowserMutationObserver(lib$es6$promise$asap$$flush);
+      var node = document.createTextNode('');
+      observer.observe(node, { characterData: true });
+
+      return function() {
+        node.data = (iterations = ++iterations % 2);
+      };
+    }
+
+    // web worker
+    function lib$es6$promise$asap$$useMessageChannel() {
+      var channel = new MessageChannel();
+      channel.port1.onmessage = lib$es6$promise$asap$$flush;
+      return function () {
+        channel.port2.postMessage(0);
+      };
+    }
+
+    function lib$es6$promise$asap$$useSetTimeout() {
+      return function() {
+        setTimeout(lib$es6$promise$asap$$flush, 1);
+      };
+    }
+
+    var lib$es6$promise$asap$$queue = new Array(1000);
+    function lib$es6$promise$asap$$flush() {
+      for (var i = 0; i < lib$es6$promise$asap$$len; i+=2) {
+        var callback = lib$es6$promise$asap$$queue[i];
+        var arg = lib$es6$promise$asap$$queue[i+1];
+
+        callback(arg);
+
+        lib$es6$promise$asap$$queue[i] = undefined;
+        lib$es6$promise$asap$$queue[i+1] = undefined;
+      }
+
+      lib$es6$promise$asap$$len = 0;
+    }
+
+    function lib$es6$promise$asap$$attemptVertx() {
+      try {
+        var r = require;
+        var vertx = r('vertx');
+        lib$es6$promise$asap$$vertxNext = vertx.runOnLoop || vertx.runOnContext;
+        return lib$es6$promise$asap$$useVertxTimer();
+      } catch(e) {
+        return lib$es6$promise$asap$$useSetTimeout();
+      }
+    }
+
+    var lib$es6$promise$asap$$scheduleFlush;
+    // Decide what async method to use to triggering processing of queued callbacks:
+    if (lib$es6$promise$asap$$isNode) {
+      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$useNextTick();
+    } else if (lib$es6$promise$asap$$BrowserMutationObserver) {
+      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$useMutationObserver();
+    } else if (lib$es6$promise$asap$$isWorker) {
+      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$useMessageChannel();
+    } else if (lib$es6$promise$asap$$browserWindow === undefined && typeof require === 'function') {
+      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$attemptVertx();
+    } else {
+      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$useSetTimeout();
+    }
+    function lib$es6$promise$then$$then(onFulfillment, onRejection) {
+      var parent = this;
+
+      var child = new this.constructor(lib$es6$promise$$internal$$noop);
+
+      if (child[lib$es6$promise$$internal$$PROMISE_ID] === undefined) {
+        lib$es6$promise$$internal$$makePromise(child);
+      }
+
+      var state = parent._state;
+
+      if (state) {
+        var callback = arguments[state - 1];
+        lib$es6$promise$asap$$asap(function(){
+          lib$es6$promise$$internal$$invokeCallback(state, child, callback, parent._result);
+        });
+      } else {
+        lib$es6$promise$$internal$$subscribe(parent, child, onFulfillment, onRejection);
+      }
+
+      return child;
+    }
+    var lib$es6$promise$then$$default = lib$es6$promise$then$$then;
+    function lib$es6$promise$promise$resolve$$resolve(object) {
+      /*jshint validthis:true */
+      var Constructor = this;
+
+      if (object && typeof object === 'object' && object.constructor === Constructor) {
+        return object;
+      }
+
+      var promise = new Constructor(lib$es6$promise$$internal$$noop);
+      lib$es6$promise$$internal$$resolve(promise, object);
+      return promise;
+    }
+    var lib$es6$promise$promise$resolve$$default = lib$es6$promise$promise$resolve$$resolve;
+    var lib$es6$promise$$internal$$PROMISE_ID = Math.random().toString(36).substring(16);
+
+    function lib$es6$promise$$internal$$noop() {}
+
+    var lib$es6$promise$$internal$$PENDING   = void 0;
+    var lib$es6$promise$$internal$$FULFILLED = 1;
+    var lib$es6$promise$$internal$$REJECTED  = 2;
+
+    var lib$es6$promise$$internal$$GET_THEN_ERROR = new lib$es6$promise$$internal$$ErrorObject();
+
+    function lib$es6$promise$$internal$$selfFulfillment() {
+      return new TypeError("You cannot resolve a promise with itself");
+    }
+
+    function lib$es6$promise$$internal$$cannotReturnOwn() {
+      return new TypeError('A promises callback cannot return that same promise.');
+    }
+
+    function lib$es6$promise$$internal$$getThen(promise) {
+      try {
+        return promise.then;
+      } catch(error) {
+        lib$es6$promise$$internal$$GET_THEN_ERROR.error = error;
+        return lib$es6$promise$$internal$$GET_THEN_ERROR;
+      }
+    }
+
+    function lib$es6$promise$$internal$$tryThen(then, value, fulfillmentHandler, rejectionHandler) {
+      try {
+        then.call(value, fulfillmentHandler, rejectionHandler);
+      } catch(e) {
+        return e;
+      }
+    }
+
+    function lib$es6$promise$$internal$$handleForeignThenable(promise, thenable, then) {
+       lib$es6$promise$asap$$asap(function(promise) {
+        var sealed = false;
+        var error = lib$es6$promise$$internal$$tryThen(then, thenable, function(value) {
+          if (sealed) { return; }
+          sealed = true;
+          if (thenable !== value) {
+            lib$es6$promise$$internal$$resolve(promise, value);
+          } else {
+            lib$es6$promise$$internal$$fulfill(promise, value);
+          }
+        }, function(reason) {
+          if (sealed) { return; }
+          sealed = true;
+
+          lib$es6$promise$$internal$$reject(promise, reason);
+        }, 'Settle: ' + (promise._label || ' unknown promise'));
+
+        if (!sealed && error) {
+          sealed = true;
+          lib$es6$promise$$internal$$reject(promise, error);
+        }
+      }, promise);
+    }
+
+    function lib$es6$promise$$internal$$handleOwnThenable(promise, thenable) {
+      if (thenable._state === lib$es6$promise$$internal$$FULFILLED) {
+        lib$es6$promise$$internal$$fulfill(promise, thenable._result);
+      } else if (thenable._state === lib$es6$promise$$internal$$REJECTED) {
+        lib$es6$promise$$internal$$reject(promise, thenable._result);
+      } else {
+        lib$es6$promise$$internal$$subscribe(thenable, undefined, function(value) {
+          lib$es6$promise$$internal$$resolve(promise, value);
+        }, function(reason) {
+          lib$es6$promise$$internal$$reject(promise, reason);
+        });
+      }
+    }
+
+    function lib$es6$promise$$internal$$handleMaybeThenable(promise, maybeThenable, then) {
+      if (maybeThenable.constructor === promise.constructor &&
+          then === lib$es6$promise$then$$default &&
+          constructor.resolve === lib$es6$promise$promise$resolve$$default) {
+        lib$es6$promise$$internal$$handleOwnThenable(promise, maybeThenable);
+      } else {
+        if (then === lib$es6$promise$$internal$$GET_THEN_ERROR) {
+          lib$es6$promise$$internal$$reject(promise, lib$es6$promise$$internal$$GET_THEN_ERROR.error);
+        } else if (then === undefined) {
+          lib$es6$promise$$internal$$fulfill(promise, maybeThenable);
+        } else if (lib$es6$promise$utils$$isFunction(then)) {
+          lib$es6$promise$$internal$$handleForeignThenable(promise, maybeThenable, then);
+        } else {
+          lib$es6$promise$$internal$$fulfill(promise, maybeThenable);
+        }
+      }
+    }
+
+    function lib$es6$promise$$internal$$resolve(promise, value) {
+      if (promise === value) {
+        lib$es6$promise$$internal$$reject(promise, lib$es6$promise$$internal$$selfFulfillment());
+      } else if (lib$es6$promise$utils$$objectOrFunction(value)) {
+        lib$es6$promise$$internal$$handleMaybeThenable(promise, value, lib$es6$promise$$internal$$getThen(value));
+      } else {
+        lib$es6$promise$$internal$$fulfill(promise, value);
+      }
+    }
+
+    function lib$es6$promise$$internal$$publishRejection(promise) {
+      if (promise._onerror) {
+        promise._onerror(promise._result);
+      }
+
+      lib$es6$promise$$internal$$publish(promise);
+    }
+
+    function lib$es6$promise$$internal$$fulfill(promise, value) {
+      if (promise._state !== lib$es6$promise$$internal$$PENDING) { return; }
+
+      promise._result = value;
+      promise._state = lib$es6$promise$$internal$$FULFILLED;
+
+      if (promise._subscribers.length !== 0) {
+        lib$es6$promise$asap$$asap(lib$es6$promise$$internal$$publish, promise);
+      }
+    }
+
+    function lib$es6$promise$$internal$$reject(promise, reason) {
+      if (promise._state !== lib$es6$promise$$internal$$PENDING) { return; }
+      promise._state = lib$es6$promise$$internal$$REJECTED;
+      promise._result = reason;
+
+      lib$es6$promise$asap$$asap(lib$es6$promise$$internal$$publishRejection, promise);
+    }
+
+    function lib$es6$promise$$internal$$subscribe(parent, child, onFulfillment, onRejection) {
+      var subscribers = parent._subscribers;
+      var length = subscribers.length;
+
+      parent._onerror = null;
+
+      subscribers[length] = child;
+      subscribers[length + lib$es6$promise$$internal$$FULFILLED] = onFulfillment;
+      subscribers[length + lib$es6$promise$$internal$$REJECTED]  = onRejection;
+
+      if (length === 0 && parent._state) {
+        lib$es6$promise$asap$$asap(lib$es6$promise$$internal$$publish, parent);
+      }
+    }
+
+    function lib$es6$promise$$internal$$publish(promise) {
+      var subscribers = promise._subscribers;
+      var settled = promise._state;
+
+      if (subscribers.length === 0) { return; }
+
+      var child, callback, detail = promise._result;
+
+      for (var i = 0; i < subscribers.length; i += 3) {
+        child = subscribers[i];
+        callback = subscribers[i + settled];
+
+        if (child) {
+          lib$es6$promise$$internal$$invokeCallback(settled, child, callback, detail);
+        } else {
+          callback(detail);
+        }
+      }
+
+      promise._subscribers.length = 0;
+    }
+
+    function lib$es6$promise$$internal$$ErrorObject() {
+      this.error = null;
+    }
+
+    var lib$es6$promise$$internal$$TRY_CATCH_ERROR = new lib$es6$promise$$internal$$ErrorObject();
+
+    function lib$es6$promise$$internal$$tryCatch(callback, detail) {
+      try {
+        return callback(detail);
+      } catch(e) {
+        lib$es6$promise$$internal$$TRY_CATCH_ERROR.error = e;
+        return lib$es6$promise$$internal$$TRY_CATCH_ERROR;
+      }
+    }
+
+    function lib$es6$promise$$internal$$invokeCallback(settled, promise, callback, detail) {
+      var hasCallback = lib$es6$promise$utils$$isFunction(callback),
+          value, error, succeeded, failed;
+
+      if (hasCallback) {
+        value = lib$es6$promise$$internal$$tryCatch(callback, detail);
+
+        if (value === lib$es6$promise$$internal$$TRY_CATCH_ERROR) {
+          failed = true;
+          error = value.error;
+          value = null;
+        } else {
+          succeeded = true;
+        }
+
+        if (promise === value) {
+          lib$es6$promise$$internal$$reject(promise, lib$es6$promise$$internal$$cannotReturnOwn());
+          return;
+        }
+
+      } else {
+        value = detail;
+        succeeded = true;
+      }
+
+      if (promise._state !== lib$es6$promise$$internal$$PENDING) {
+        // noop
+      } else if (hasCallback && succeeded) {
+        lib$es6$promise$$internal$$resolve(promise, value);
+      } else if (failed) {
+        lib$es6$promise$$internal$$reject(promise, error);
+      } else if (settled === lib$es6$promise$$internal$$FULFILLED) {
+        lib$es6$promise$$internal$$fulfill(promise, value);
+      } else if (settled === lib$es6$promise$$internal$$REJECTED) {
+        lib$es6$promise$$internal$$reject(promise, value);
+      }
+    }
+
+    function lib$es6$promise$$internal$$initializePromise(promise, resolver) {
+      try {
+        resolver(function resolvePromise(value){
+          lib$es6$promise$$internal$$resolve(promise, value);
+        }, function rejectPromise(reason) {
+          lib$es6$promise$$internal$$reject(promise, reason);
+        });
+      } catch(e) {
+        lib$es6$promise$$internal$$reject(promise, e);
+      }
+    }
+
+    var lib$es6$promise$$internal$$id = 0;
+    function lib$es6$promise$$internal$$nextId() {
+      return lib$es6$promise$$internal$$id++;
+    }
+
+    function lib$es6$promise$$internal$$makePromise(promise) {
+      promise[lib$es6$promise$$internal$$PROMISE_ID] = lib$es6$promise$$internal$$id++;
+      promise._state = undefined;
+      promise._result = undefined;
+      promise._subscribers = [];
+    }
+
+    function lib$es6$promise$promise$all$$all(entries) {
+      return new lib$es6$promise$enumerator$$default(this, entries).promise;
+    }
+    var lib$es6$promise$promise$all$$default = lib$es6$promise$promise$all$$all;
+    function lib$es6$promise$promise$race$$race(entries) {
+      /*jshint validthis:true */
+      var Constructor = this;
+
+      if (!lib$es6$promise$utils$$isArray(entries)) {
+        return new Constructor(function(resolve, reject) {
+          reject(new TypeError('You must pass an array to race.'));
+        });
+      } else {
+        return new Constructor(function(resolve, reject) {
+          var length = entries.length;
+          for (var i = 0; i < length; i++) {
+            Constructor.resolve(entries[i]).then(resolve, reject);
+          }
+        });
+      }
+    }
+    var lib$es6$promise$promise$race$$default = lib$es6$promise$promise$race$$race;
+    function lib$es6$promise$promise$reject$$reject(reason) {
+      /*jshint validthis:true */
+      var Constructor = this;
+      var promise = new Constructor(lib$es6$promise$$internal$$noop);
+      lib$es6$promise$$internal$$reject(promise, reason);
+      return promise;
+    }
+    var lib$es6$promise$promise$reject$$default = lib$es6$promise$promise$reject$$reject;
+
+
+    function lib$es6$promise$promise$$needsResolver() {
+      throw new TypeError('You must pass a resolver function as the first argument to the promise constructor');
+    }
+
+    function lib$es6$promise$promise$$needsNew() {
+      throw new TypeError("Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function.");
+    }
+
+    var lib$es6$promise$promise$$default = lib$es6$promise$promise$$Promise;
+    /**
+      Promise objects represent the eventual result of an asynchronous operation. The
+      primary way of interacting with a promise is through its `then` method, which
+      registers callbacks to receive either a promise's eventual value or the reason
+      why the promise cannot be fulfilled.
+
+      Terminology
+      -----------
+
+      - `promise` is an object or function with a `then` method whose behavior conforms to this specification.
+      - `thenable` is an object or function that defines a `then` method.
+      - `value` is any legal JavaScript value (including undefined, a thenable, or a promise).
+      - `exception` is a value that is thrown using the throw statement.
+      - `reason` is a value that indicates why a promise was rejected.
+      - `settled` the final resting state of a promise, fulfilled or rejected.
+
+      A promise can be in one of three states: pending, fulfilled, or rejected.
+
+      Promises that are fulfilled have a fulfillment value and are in the fulfilled
+      state.  Promises that are rejected have a rejection reason and are in the
+      rejected state.  A fulfillment value is never a thenable.
+
+      Promises can also be said to *resolve* a value.  If this value is also a
+      promise, then the original promise's settled state will match the value's
+      settled state.  So a promise that *resolves* a promise that rejects will
+      itself reject, and a promise that *resolves* a promise that fulfills will
+      itself fulfill.
+
+
+      Basic Usage:
+      ------------
+
+      ```js
+      var promise = new Promise(function(resolve, reject) {
+        // on success
+        resolve(value);
+
+        // on failure
+        reject(reason);
+      });
+
+      promise.then(function(value) {
+        // on fulfillment
+      }, function(reason) {
+        // on rejection
+      });
+      ```
+
+      Advanced Usage:
+      ---------------
+
+      Promises shine when abstracting away asynchronous interactions such as
+      `XMLHttpRequest`s.
+
+      ```js
+      function getJSON(url) {
+        return new Promise(function(resolve, reject){
+          var xhr = new XMLHttpRequest();
+
+          xhr.open('GET', url);
+          xhr.onreadystatechange = handler;
+          xhr.responseType = 'json';
+          xhr.setRequestHeader('Accept', 'application/json');
+          xhr.send();
+
+          function handler() {
+            if (this.readyState === this.DONE) {
+              if (this.status === 200) {
+                resolve(this.response);
+              } else {
+                reject(new Error('getJSON: `' + url + '` failed with status: [' + this.status + ']'));
+              }
+            }
+          };
+        });
+      }
+
+      getJSON('/posts.json').then(function(json) {
+        // on fulfillment
+      }, function(reason) {
+        // on rejection
+      });
+      ```
+
+      Unlike callbacks, promises are great composable primitives.
+
+      ```js
+      Promise.all([
+        getJSON('/posts'),
+        getJSON('/comments')
+      ]).then(function(values){
+        values[0] // => postsJSON
+        values[1] // => commentsJSON
+
+        return values;
+      });
+      ```
+
+      @class Promise
+      @param {function} resolver
+      Useful for tooling.
+      @constructor
+    */
+    function lib$es6$promise$promise$$Promise(resolver) {
+      this[lib$es6$promise$$internal$$PROMISE_ID] = lib$es6$promise$$internal$$nextId();
+      this._result = this._state = undefined;
+      this._subscribers = [];
+
+      if (lib$es6$promise$$internal$$noop !== resolver) {
+        typeof resolver !== 'function' && lib$es6$promise$promise$$needsResolver();
+        this instanceof lib$es6$promise$promise$$Promise ? lib$es6$promise$$internal$$initializePromise(this, resolver) : lib$es6$promise$promise$$needsNew();
+      }
+    }
+
+    lib$es6$promise$promise$$Promise.all = lib$es6$promise$promise$all$$default;
+    lib$es6$promise$promise$$Promise.race = lib$es6$promise$promise$race$$default;
+    lib$es6$promise$promise$$Promise.resolve = lib$es6$promise$promise$resolve$$default;
+    lib$es6$promise$promise$$Promise.reject = lib$es6$promise$promise$reject$$default;
+    lib$es6$promise$promise$$Promise._setScheduler = lib$es6$promise$asap$$setScheduler;
+    lib$es6$promise$promise$$Promise._setAsap = lib$es6$promise$asap$$setAsap;
+    lib$es6$promise$promise$$Promise._asap = lib$es6$promise$asap$$asap;
+
+    lib$es6$promise$promise$$Promise.prototype = {
+      constructor: lib$es6$promise$promise$$Promise,
+
+    /**
+      The primary way of interacting with a promise is through its `then` method,
+      which registers callbacks to receive either a promise's eventual value or the
+      reason why the promise cannot be fulfilled.
+
+      ```js
+      findUser().then(function(user){
+        // user is available
+      }, function(reason){
+        // user is unavailable, and you are given the reason why
+      });
+      ```
+
+      Chaining
+      --------
+
+      The return value of `then` is itself a promise.  This second, 'downstream'
+      promise is resolved with the return value of the first promise's fulfillment
+      or rejection handler, or rejected if the handler throws an exception.
+
+      ```js
+      findUser().then(function (user) {
+        return user.name;
+      }, function (reason) {
+        return 'default name';
+      }).then(function (userName) {
+        // If `findUser` fulfilled, `userName` will be the user's name, otherwise it
+        // will be `'default name'`
+      });
+
+      findUser().then(function (user) {
+        throw new Error('Found user, but still unhappy');
+      }, function (reason) {
+        throw new Error('`findUser` rejected and we're unhappy');
+      }).then(function (value) {
+        // never reached
+      }, function (reason) {
+        // if `findUser` fulfilled, `reason` will be 'Found user, but still unhappy'.
+        // If `findUser` rejected, `reason` will be '`findUser` rejected and we're unhappy'.
+      });
+      ```
+      If the downstream promise does not specify a rejection handler, rejection reasons will be propagated further downstream.
+
+      ```js
+      findUser().then(function (user) {
+        throw new PedagogicalException('Upstream error');
+      }).then(function (value) {
+        // never reached
+      }).then(function (value) {
+        // never reached
+      }, function (reason) {
+        // The `PedgagocialException` is propagated all the way down to here
+      });
+      ```
+
+      Assimilation
+      ------------
+
+      Sometimes the value you want to propagate to a downstream promise can only be
+      retrieved asynchronously. This can be achieved by returning a promise in the
+      fulfillment or rejection handler. The downstream promise will then be pending
+      until the returned promise is settled. This is called *assimilation*.
+
+      ```js
+      findUser().then(function (user) {
+        return findCommentsByAuthor(user);
+      }).then(function (comments) {
+        // The user's comments are now available
+      });
+      ```
+
+      If the assimliated promise rejects, then the downstream promise will also reject.
+
+      ```js
+      findUser().then(function (user) {
+        return findCommentsByAuthor(user);
+      }).then(function (comments) {
+        // If `findCommentsByAuthor` fulfills, we'll have the value here
+      }, function (reason) {
+        // If `findCommentsByAuthor` rejects, we'll have the reason here
+      });
+      ```
+
+      Simple Example
+      --------------
+
+      Synchronous Example
+
+      ```javascript
+      var result;
+
+      try {
+        result = findResult();
+        // success
+      } catch(reason) {
+        // failure
+      }
+      ```
+
+      Errback Example
+
+      ```js
+      findResult(function(result, err){
+        if (err) {
+          // failure
+        } else {
+          // success
+        }
+      });
+      ```
+
+      Promise Example;
+
+      ```javascript
+      findResult().then(function(result){
+        // success
+      }, function(reason){
+        // failure
+      });
+      ```
+
+      Advanced Example
+      --------------
+
+      Synchronous Example
+
+      ```javascript
+      var author, books;
+
+      try {
+        author = findAuthor();
+        books  = findBooksByAuthor(author);
+        // success
+      } catch(reason) {
+        // failure
+      }
+      ```
+
+      Errback Example
+
+      ```js
+
+      function foundBooks(books) {
+
+      }
+
+      function failure(reason) {
+
+      }
+
+      findAuthor(function(author, err){
+        if (err) {
+          failure(err);
+          // failure
+        } else {
+          try {
+            findBoooksByAuthor(author, function(books, err) {
+              if (err) {
+                failure(err);
+              } else {
+                try {
+                  foundBooks(books);
+                } catch(reason) {
+                  failure(reason);
+                }
+              }
+            });
+          } catch(error) {
+            failure(err);
+          }
+          // success
+        }
+      });
+      ```
+
+      Promise Example;
+
+      ```javascript
+      findAuthor().
+        then(findBooksByAuthor).
+        then(function(books){
+          // found books
+      }).catch(function(reason){
+        // something went wrong
+      });
+      ```
+
+      @method then
+      @param {Function} onFulfilled
+      @param {Function} onRejected
+      Useful for tooling.
+      @return {Promise}
+    */
+      then: lib$es6$promise$then$$default,
+
+    /**
+      `catch` is simply sugar for `then(undefined, onRejection)` which makes it the same
+      as the catch block of a try/catch statement.
+
+      ```js
+      function findAuthor(){
+        throw new Error('couldn't find that author');
+      }
+
+      // synchronous
+      try {
+        findAuthor();
+      } catch(reason) {
+        // something went wrong
+      }
+
+      // async with promises
+      findAuthor().catch(function(reason){
+        // something went wrong
+      });
+      ```
+
+      @method catch
+      @param {Function} onRejection
+      Useful for tooling.
+      @return {Promise}
+    */
+      'catch': function(onRejection) {
+        return this.then(null, onRejection);
+      }
+    };
+    var lib$es6$promise$enumerator$$default = lib$es6$promise$enumerator$$Enumerator;
+    function lib$es6$promise$enumerator$$Enumerator(Constructor, input) {
+      this._instanceConstructor = Constructor;
+      this.promise = new Constructor(lib$es6$promise$$internal$$noop);
+
+      if (!this.promise[lib$es6$promise$$internal$$PROMISE_ID]) {
+        lib$es6$promise$$internal$$makePromise(this.promise);
+      }
+
+      if (lib$es6$promise$utils$$isArray(input)) {
+        this._input     = input;
+        this.length     = input.length;
+        this._remaining = input.length;
+
+        this._result = new Array(this.length);
+
+        if (this.length === 0) {
+          lib$es6$promise$$internal$$fulfill(this.promise, this._result);
+        } else {
+          this.length = this.length || 0;
+          this._enumerate();
+          if (this._remaining === 0) {
+            lib$es6$promise$$internal$$fulfill(this.promise, this._result);
+          }
+        }
+      } else {
+        lib$es6$promise$$internal$$reject(this.promise, lib$es6$promise$enumerator$$validationError());
+      }
+    }
+
+    function lib$es6$promise$enumerator$$validationError() {
+      return new Error('Array Methods must be provided an Array');
+    }
+
+    lib$es6$promise$enumerator$$Enumerator.prototype._enumerate = function() {
+      var length  = this.length;
+      var input   = this._input;
+
+      for (var i = 0; this._state === lib$es6$promise$$internal$$PENDING && i < length; i++) {
+        this._eachEntry(input[i], i);
+      }
+    };
+
+    lib$es6$promise$enumerator$$Enumerator.prototype._eachEntry = function(entry, i) {
+      var c = this._instanceConstructor;
+      var resolve = c.resolve;
+
+      if (resolve === lib$es6$promise$promise$resolve$$default) {
+        var then = lib$es6$promise$$internal$$getThen(entry);
+
+        if (then === lib$es6$promise$then$$default &&
+            entry._state !== lib$es6$promise$$internal$$PENDING) {
+          this._settledAt(entry._state, i, entry._result);
+        } else if (typeof then !== 'function') {
+          this._remaining--;
+          this._result[i] = entry;
+        } else if (c === lib$es6$promise$promise$$default) {
+          var promise = new c(lib$es6$promise$$internal$$noop);
+          lib$es6$promise$$internal$$handleMaybeThenable(promise, entry, then);
+          this._willSettleAt(promise, i);
+        } else {
+          this._willSettleAt(new c(function(resolve) { resolve(entry); }), i);
+        }
+      } else {
+        this._willSettleAt(resolve(entry), i);
+      }
+    };
+
+    lib$es6$promise$enumerator$$Enumerator.prototype._settledAt = function(state, i, value) {
+      var promise = this.promise;
+
+      if (promise._state === lib$es6$promise$$internal$$PENDING) {
+        this._remaining--;
+
+        if (state === lib$es6$promise$$internal$$REJECTED) {
+          lib$es6$promise$$internal$$reject(promise, value);
+        } else {
+          this._result[i] = value;
+        }
+      }
+
+      if (this._remaining === 0) {
+        lib$es6$promise$$internal$$fulfill(promise, this._result);
+      }
+    };
+
+    lib$es6$promise$enumerator$$Enumerator.prototype._willSettleAt = function(promise, i) {
+      var enumerator = this;
+
+      lib$es6$promise$$internal$$subscribe(promise, undefined, function(value) {
+        enumerator._settledAt(lib$es6$promise$$internal$$FULFILLED, i, value);
+      }, function(reason) {
+        enumerator._settledAt(lib$es6$promise$$internal$$REJECTED, i, reason);
+      });
+    };
+    function lib$es6$promise$polyfill$$polyfill() {
+      var local;
+
+      if (typeof global !== 'undefined') {
+          local = global;
+      } else if (typeof self !== 'undefined') {
+          local = self;
+      } else {
+          try {
+              local = Function('return this')();
+          } catch (e) {
+              throw new Error('polyfill failed because global object is unavailable in this environment');
+          }
+      }
+
+      var P = local.Promise;
+
+      if (P && Object.prototype.toString.call(P.resolve()) === '[object Promise]' && !P.cast) {
+        return;
+      }
+
+      local.Promise = lib$es6$promise$promise$$default;
+    }
+    var lib$es6$promise$polyfill$$default = lib$es6$promise$polyfill$$polyfill;
+
+    var lib$es6$promise$umd$$ES6Promise = {
+      'Promise': lib$es6$promise$promise$$default,
+      'polyfill': lib$es6$promise$polyfill$$default
+    };
+
+    /* global define:true module:true window: true */
+    if (typeof define === 'function' && define['amd']) {
+      define(function() { return lib$es6$promise$umd$$ES6Promise; });
+    } else if (typeof module !== 'undefined' && module['exports']) {
+      module['exports'] = lib$es6$promise$umd$$ES6Promise;
+    } else if (typeof this !== 'undefined') {
+      this['ES6Promise'] = lib$es6$promise$umd$$ES6Promise;
+    }
+
+    lib$es6$promise$polyfill$$default();
+}).call(this);
+
+
+},{}],24:[function(require,module,exports){
+/*!
  * escape-html
  * Copyright(c) 2012-2013 TJ Holowaychuk
  * Copyright(c) 2015 Andreas Lubbe
@@ -3413,7 +4374,7 @@ function escapeHtml(string) {
     : html;
 }
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 /*!
  * etag
  * Copyright(c) 2014-2015 Douglas Christopher Wilson
@@ -3547,7 +4508,7 @@ function stattag(stat) {
   return '"' + size + '-' + mtime + '"'
 }
 
-},{"crypto":undefined,"fs":undefined}],25:[function(require,module,exports){
+},{"crypto":undefined,"fs":undefined}],26:[function(require,module,exports){
 /*
  * Copyright (c) 2014, Yahoo Inc. All rights reserved.
  * Copyrights licensed under the New BSD License.
@@ -3572,7 +4533,7 @@ function create(config) {
     return new ExpressHandlebars(config);
 }
 
-},{"./lib/express-handlebars":26}],26:[function(require,module,exports){
+},{"./lib/express-handlebars":27}],27:[function(require,module,exports){
 /*
  * Copyright (c) 2015, Yahoo Inc. All rights reserved.
  * Copyrights licensed under the New BSD License.
@@ -3914,7 +4875,7 @@ ExpressHandlebars.prototype._resolveLayoutPath = function (layoutPath) {
     return path.resolve(this.layoutsDir, layoutPath);
 };
 
-},{"./utils":27,"glob":29,"graceful-fs":55,"handlebars":87,"path":undefined,"promise":130}],27:[function(require,module,exports){
+},{"./utils":28,"glob":30,"graceful-fs":58,"handlebars":90,"path":undefined,"promise":133}],28:[function(require,module,exports){
 /*
  * Copyright (c) 2014, Yahoo Inc. All rights reserved.
  * Copyrights licensed under the New BSD License.
@@ -3945,7 +4906,7 @@ function passValue(callback) {
     };
 }
 
-},{"object.assign":122}],28:[function(require,module,exports){
+},{"object.assign":125}],29:[function(require,module,exports){
 exports.alphasort = alphasort
 exports.alphasorti = alphasorti
 exports.setopts = setopts
@@ -4173,7 +5134,7 @@ function childrenIgnored (self, path) {
   })
 }
 
-},{"minimatch":111,"path":undefined,"path-is-absolute":128}],29:[function(require,module,exports){
+},{"minimatch":114,"path":undefined,"path-is-absolute":131}],30:[function(require,module,exports){
 // Approach:
 //
 // 1. Get the minimatch set
@@ -4940,7 +5901,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
   return cb(null, c, stat)
 }
 
-},{"./common.js":28,"./sync.js":30,"assert":undefined,"events":undefined,"fs":undefined,"inflight":99,"inherits":100,"minimatch":111,"once":126,"path":undefined,"path-is-absolute":128,"util":undefined}],30:[function(require,module,exports){
+},{"./common.js":29,"./sync.js":31,"assert":undefined,"events":undefined,"fs":undefined,"inflight":102,"inherits":103,"minimatch":114,"once":129,"path":undefined,"path-is-absolute":131,"util":undefined}],31:[function(require,module,exports){
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
@@ -5402,7 +6363,7 @@ GlobSync.prototype._makeAbs = function (f) {
   return common.makeAbs(this, f)
 }
 
-},{"./common.js":28,"./glob.js":29,"assert":undefined,"fs":undefined,"minimatch":111,"path":undefined,"path-is-absolute":128,"util":undefined}],31:[function(require,module,exports){
+},{"./common.js":29,"./glob.js":30,"assert":undefined,"fs":undefined,"minimatch":114,"path":undefined,"path-is-absolute":131,"util":undefined}],32:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -5415,7 +6376,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 module.exports = require('./lib/express');
 
-},{"./lib/express":33}],32:[function(require,module,exports){
+},{"./lib/express":34}],33:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -6060,7 +7021,7 @@ function tryRender(view, options, callback) {
   }
 }
 
-},{"./middleware/init":34,"./middleware/query":35,"./router":38,"./utils":41,"./view":42,"array-flatten":3,"debug":14,"depd":16,"finalhandler":48,"http":undefined,"methods":105,"path":undefined,"utils-merge":153}],33:[function(require,module,exports){
+},{"./middleware/init":35,"./middleware/query":36,"./router":39,"./utils":42,"./view":43,"array-flatten":3,"debug":14,"depd":16,"finalhandler":50,"http":undefined,"methods":108,"path":undefined,"utils-merge":156}],34:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -6165,7 +7126,7 @@ exports.static = require('serve-static');
   });
 });
 
-},{"./application":32,"./middleware/query":35,"./request":36,"./response":37,"./router":38,"./router/route":40,"events":undefined,"merge-descriptors":104,"serve-static":44}],34:[function(require,module,exports){
+},{"./application":33,"./middleware/query":36,"./request":37,"./response":38,"./router":39,"./router/route":41,"events":undefined,"merge-descriptors":107,"serve-static":45}],35:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -6203,7 +7164,7 @@ exports.init = function(app){
 };
 
 
-},{}],35:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -6256,7 +7217,7 @@ module.exports = function query(options) {
   };
 };
 
-},{"parseurl":127,"qs":139}],36:[function(require,module,exports){
+},{"parseurl":130,"qs":142}],37:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -6747,7 +7708,7 @@ function defineGetter(obj, name, getter) {
   });
 };
 
-},{"accepts":1,"depd":16,"fresh":51,"http":undefined,"net":undefined,"parseurl":127,"proxy-addr":138,"range-parser":143,"type-is":151}],37:[function(require,module,exports){
+},{"accepts":1,"depd":16,"fresh":54,"http":undefined,"net":undefined,"parseurl":130,"proxy-addr":141,"range-parser":146,"type-is":154}],38:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -7802,7 +8763,7 @@ function sendfile(res, file, options, callback) {
   file.pipe(res);
 }
 
-},{"./utils":41,"content-disposition":9,"cookie":12,"cookie-signature":11,"depd":16,"escape-html":23,"http":undefined,"on-finished":125,"path":undefined,"send":147,"utils-merge":153,"vary":154}],38:[function(require,module,exports){
+},{"./utils":42,"content-disposition":9,"cookie":12,"cookie-signature":11,"depd":16,"escape-html":24,"http":undefined,"on-finished":128,"path":undefined,"send":150,"utils-merge":156,"vary":157}],39:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -8449,7 +9410,7 @@ function wrap(old, fn) {
   };
 }
 
-},{"./layer":39,"./route":40,"array-flatten":3,"debug":14,"depd":16,"methods":105,"parseurl":127,"utils-merge":153}],39:[function(require,module,exports){
+},{"./layer":40,"./route":41,"array-flatten":3,"debug":14,"depd":16,"methods":108,"parseurl":130,"utils-merge":156}],40:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -8627,7 +9588,7 @@ function decode_param(val) {
   }
 }
 
-},{"debug":14,"path-to-regexp":129}],40:[function(require,module,exports){
+},{"debug":14,"path-to-regexp":132}],41:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -8839,7 +9800,7 @@ methods.forEach(function(method){
   };
 });
 
-},{"./layer":39,"array-flatten":3,"debug":14,"methods":105}],41:[function(require,module,exports){
+},{"./layer":40,"array-flatten":3,"debug":14,"methods":108}],42:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -9141,7 +10102,7 @@ function newObject() {
   return {};
 }
 
-},{"array-flatten":3,"content-disposition":9,"content-type":10,"depd":16,"etag":24,"path":undefined,"proxy-addr":138,"qs":139,"querystring":undefined,"send":147}],42:[function(require,module,exports){
+},{"array-flatten":3,"content-disposition":9,"content-type":10,"depd":16,"etag":25,"path":undefined,"proxy-addr":141,"qs":142,"querystring":undefined,"send":150}],43:[function(require,module,exports){
 /*!
  * express
  * Copyright(c) 2009-2013 TJ Holowaychuk
@@ -9316,7 +10277,7 @@ function tryStat(path) {
   }
 }
 
-},{"./utils":41,"debug":14,"fs":undefined,"path":undefined}],43:[function(require,module,exports){
+},{"./utils":42,"debug":14,"fs":undefined,"path":undefined}],44:[function(require,module,exports){
 
 var statuses = require('statuses');
 var inherits = require('inherits');
@@ -9438,7 +10399,7 @@ codes.forEach(function (code) {
 // backwards-compatibility
 exports["I'mateapot"] = exports.ImATeapot
 
-},{"inherits":100,"statuses":47}],44:[function(require,module,exports){
+},{"inherits":103,"statuses":48}],45:[function(require,module,exports){
 /*!
  * serve-static
  * Copyright(c) 2010 Sencha Inc.
@@ -9627,7 +10588,7 @@ function createRedirectDirectoryListener () {
   }
 }
 
-},{"escape-html":23,"parseurl":127,"path":undefined,"send":45,"url":undefined}],45:[function(require,module,exports){
+},{"escape-html":24,"parseurl":130,"path":undefined,"send":46,"url":undefined}],46:[function(require,module,exports){
 /*!
  * send
  * Copyright(c) 2012 TJ Holowaychuk
@@ -10458,7 +11419,7 @@ function normalizeList(val, name) {
   return list
 }
 
-},{"debug":14,"depd":16,"destroy":21,"escape-html":23,"etag":24,"events":undefined,"fresh":51,"fs":undefined,"http-errors":43,"mime":109,"ms":112,"on-finished":125,"path":undefined,"range-parser":143,"statuses":47,"stream":undefined}],46:[function(require,module,exports){
+},{"debug":14,"depd":16,"destroy":21,"escape-html":24,"etag":25,"events":undefined,"fresh":54,"fs":undefined,"http-errors":44,"mime":112,"ms":115,"on-finished":128,"path":undefined,"range-parser":146,"statuses":48,"stream":undefined}],47:[function(require,module,exports){
 module.exports={
   "100": "Continue",
   "101": "Switching Protocols",
@@ -10523,7 +11484,7 @@ module.exports={
   "510": "Not Extended",
   "511": "Network Authentication Required"
 }
-},{}],47:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 
 var codes = require('./codes.json');
 
@@ -10585,7 +11546,95 @@ function status(code) {
   return n;
 }
 
-},{"./codes.json":46}],48:[function(require,module,exports){
+},{"./codes.json":47}],49:[function(require,module,exports){
+'use strict';
+
+var hasOwn = Object.prototype.hasOwnProperty;
+var toStr = Object.prototype.toString;
+
+var isArray = function isArray(arr) {
+	if (typeof Array.isArray === 'function') {
+		return Array.isArray(arr);
+	}
+
+	return toStr.call(arr) === '[object Array]';
+};
+
+var isPlainObject = function isPlainObject(obj) {
+	if (!obj || toStr.call(obj) !== '[object Object]') {
+		return false;
+	}
+
+	var hasOwnConstructor = hasOwn.call(obj, 'constructor');
+	var hasIsPrototypeOf = obj.constructor && obj.constructor.prototype && hasOwn.call(obj.constructor.prototype, 'isPrototypeOf');
+	// Not own constructor property must be Object
+	if (obj.constructor && !hasOwnConstructor && !hasIsPrototypeOf) {
+		return false;
+	}
+
+	// Own properties are enumerated firstly, so to speed up,
+	// if last one is own, then all properties are own.
+	var key;
+	for (key in obj) {/**/}
+
+	return typeof key === 'undefined' || hasOwn.call(obj, key);
+};
+
+module.exports = function extend() {
+	var options, name, src, copy, copyIsArray, clone,
+		target = arguments[0],
+		i = 1,
+		length = arguments.length,
+		deep = false;
+
+	// Handle a deep copy situation
+	if (typeof target === 'boolean') {
+		deep = target;
+		target = arguments[1] || {};
+		// skip the boolean and the target
+		i = 2;
+	} else if ((typeof target !== 'object' && typeof target !== 'function') || target == null) {
+		target = {};
+	}
+
+	for (; i < length; ++i) {
+		options = arguments[i];
+		// Only deal with non-null/undefined values
+		if (options != null) {
+			// Extend the base object
+			for (name in options) {
+				src = target[name];
+				copy = options[name];
+
+				// Prevent never-ending loop
+				if (target !== copy) {
+					// Recurse if we're merging plain objects or arrays
+					if (deep && copy && (isPlainObject(copy) || (copyIsArray = isArray(copy)))) {
+						if (copyIsArray) {
+							copyIsArray = false;
+							clone = src && isArray(src) ? src : [];
+						} else {
+							clone = src && isPlainObject(src) ? src : {};
+						}
+
+						// Never move original objects, clone them
+						target[name] = extend(deep, clone, copy);
+
+					// Don't bring in undefined values
+					} else if (typeof copy !== 'undefined') {
+						target[name] = copy;
+					}
+				}
+			}
+		}
+	}
+
+	// Return the modified object
+	return target;
+};
+
+
+},{}],50:[function(require,module,exports){
 /*!
  * finalhandler
  * Copyright(c) 2014-2015 Douglas Christopher Wilson
@@ -10738,7 +11787,7 @@ function send(req, res, status, body) {
   req.resume()
 }
 
-},{"debug":14,"escape-html":23,"http":undefined,"on-finished":125,"unpipe":152}],49:[function(require,module,exports){
+},{"debug":14,"escape-html":24,"http":undefined,"on-finished":128,"unpipe":155}],51:[function(require,module,exports){
 
 var hasOwn = Object.prototype.hasOwnProperty;
 var toString = Object.prototype.toString;
@@ -10762,7 +11811,44 @@ module.exports = function forEach (obj, fn, ctx) {
 };
 
 
-},{}],50:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
+/*jshint -W054 */
+;(function (exports) {
+  'use strict';
+
+  function forEachAsync(arr, fn, thisArg) {
+    var dones = []
+      , index = -1
+      ;
+
+    function next(BREAK, result) {
+      index += 1;
+
+      if (index === arr.length || BREAK === forEachAsync.__BREAK) {
+        dones.forEach(function (done) {
+          done.call(thisArg, result);
+        });
+        return;
+      }
+
+      fn.call(thisArg, next, arr[index], index, arr);
+    }
+
+    setTimeout(next, 4);
+
+    return {
+      then: function (_done) {
+        dones.push(_done);
+        return this;
+      }
+    };
+  }
+  forEachAsync.__BREAK = {};
+
+  exports.forEachAsync = forEachAsync;
+}('undefined' !== typeof exports && exports || new Function('return this')()));
+
+},{}],53:[function(require,module,exports){
 /*!
  * forwarded
  * Copyright(c) 2014 Douglas Christopher Wilson
@@ -10799,7 +11885,7 @@ function forwarded(req) {
   return addrs
 }
 
-},{}],51:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 
 /**
  * Expose `fresh()`.
@@ -10858,7 +11944,7 @@ function fresh(req, res) {
   return !! (etagMatches && notModified);
 }
 
-},{}],52:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 var ERROR_MESSAGE = 'Function.prototype.bind called on incompatible ';
 var slice = Array.prototype.slice;
 var toStr = Object.prototype.toString;
@@ -10908,12 +11994,12 @@ module.exports = function bind(that) {
     return bound;
 };
 
-},{}],53:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 var implementation = require('./implementation');
 
 module.exports = Function.prototype.bind || implementation;
 
-},{"./implementation":52}],54:[function(require,module,exports){
+},{"./implementation":55}],57:[function(require,module,exports){
 'use strict'
 
 var fs = require('fs')
@@ -10936,7 +12022,7 @@ function clone (obj) {
   return copy
 }
 
-},{"fs":undefined}],55:[function(require,module,exports){
+},{"fs":undefined}],58:[function(require,module,exports){
 var fs = require('fs')
 var polyfills = require('./polyfills.js')
 var legacy = require('./legacy-streams.js')
@@ -11191,7 +12277,7 @@ function retry () {
   }
 }
 
-},{"./fs.js":54,"./legacy-streams.js":56,"./polyfills.js":57,"assert":undefined,"fs":undefined,"util":undefined}],56:[function(require,module,exports){
+},{"./fs.js":57,"./legacy-streams.js":59,"./polyfills.js":60,"assert":undefined,"fs":undefined,"util":undefined}],59:[function(require,module,exports){
 var Stream = require('stream').Stream
 
 module.exports = legacy
@@ -11311,7 +12397,7 @@ function legacy (fs) {
   }
 }
 
-},{"stream":undefined}],57:[function(require,module,exports){
+},{"stream":undefined}],60:[function(require,module,exports){
 var fs = require('./fs.js')
 var constants = require('constants')
 
@@ -11565,7 +12651,7 @@ function chownErOk (er) {
   return false
 }
 
-},{"./fs.js":54,"constants":undefined}],58:[function(require,module,exports){
+},{"./fs.js":57,"constants":undefined}],61:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -11632,7 +12718,7 @@ exports['default'] = inst;
 module.exports = exports['default'];
 
 
-},{"./handlebars.runtime":59,"./handlebars/compiler/ast":61,"./handlebars/compiler/base":62,"./handlebars/compiler/compiler":64,"./handlebars/compiler/javascript-compiler":66,"./handlebars/compiler/visitor":69,"./handlebars/no-conflict":83}],59:[function(require,module,exports){
+},{"./handlebars.runtime":62,"./handlebars/compiler/ast":64,"./handlebars/compiler/base":65,"./handlebars/compiler/compiler":67,"./handlebars/compiler/javascript-compiler":69,"./handlebars/compiler/visitor":72,"./handlebars/no-conflict":86}],62:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -11700,7 +12786,7 @@ exports['default'] = inst;
 module.exports = exports['default'];
 
 
-},{"./handlebars/base":60,"./handlebars/exception":73,"./handlebars/no-conflict":83,"./handlebars/runtime":84,"./handlebars/safe-string":85,"./handlebars/utils":86}],60:[function(require,module,exports){
+},{"./handlebars/base":63,"./handlebars/exception":76,"./handlebars/no-conflict":86,"./handlebars/runtime":87,"./handlebars/safe-string":88,"./handlebars/utils":89}],63:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -11806,7 +12892,7 @@ exports.createFrame = _utils.createFrame;
 exports.logger = _logger2['default'];
 
 
-},{"./decorators":71,"./exception":73,"./helpers":74,"./logger":82,"./utils":86}],61:[function(require,module,exports){
+},{"./decorators":74,"./exception":76,"./helpers":77,"./logger":85,"./utils":89}],64:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -11839,7 +12925,7 @@ exports['default'] = AST;
 module.exports = exports['default'];
 
 
-},{}],62:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -11889,7 +12975,7 @@ function parse(input, options) {
 }
 
 
-},{"../utils":86,"./helpers":65,"./parser":67,"./whitespace-control":70}],63:[function(require,module,exports){
+},{"../utils":89,"./helpers":68,"./parser":70,"./whitespace-control":73}],66:[function(require,module,exports){
 /* global define */
 'use strict';
 
@@ -12057,7 +13143,7 @@ exports['default'] = CodeGen;
 module.exports = exports['default'];
 
 
-},{"../utils":86,"source-map":88}],64:[function(require,module,exports){
+},{"../utils":89,"source-map":91}],67:[function(require,module,exports){
 /* eslint-disable new-cap */
 
 'use strict';
@@ -12631,7 +13717,7 @@ function transformLiteralToPath(sexpr) {
 }
 
 
-},{"../exception":73,"../utils":86,"./ast":61}],65:[function(require,module,exports){
+},{"../exception":76,"../utils":89,"./ast":64}],68:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -12863,7 +13949,7 @@ function preparePartialBlock(open, program, close, locInfo) {
 }
 
 
-},{"../exception":73}],66:[function(require,module,exports){
+},{"../exception":76}],69:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -13991,7 +15077,7 @@ exports['default'] = JavaScriptCompiler;
 module.exports = exports['default'];
 
 
-},{"../base":60,"../exception":73,"../utils":86,"./code-gen":63}],67:[function(require,module,exports){
+},{"../base":63,"../exception":76,"../utils":89,"./code-gen":66}],70:[function(require,module,exports){
 /* istanbul ignore next */
 /* Jison generated parser */
 "use strict";
@@ -14731,7 +15817,7 @@ var handlebars = (function () {
 exports['default'] = handlebars;
 
 
-},{}],68:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 /* eslint-disable new-cap */
 'use strict';
 
@@ -14919,7 +16005,7 @@ PrintVisitor.prototype.HashPair = function (pair) {
 /* eslint-enable new-cap */
 
 
-},{"./visitor":69}],69:[function(require,module,exports){
+},{"./visitor":72}],72:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15061,7 +16147,7 @@ exports['default'] = Visitor;
 module.exports = exports['default'];
 
 
-},{"../exception":73}],70:[function(require,module,exports){
+},{"../exception":76}],73:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15284,7 +16370,7 @@ exports['default'] = WhitespaceControl;
 module.exports = exports['default'];
 
 
-},{"./visitor":69}],71:[function(require,module,exports){
+},{"./visitor":72}],74:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15302,7 +16388,7 @@ function registerDefaultDecorators(instance) {
 }
 
 
-},{"./decorators/inline":72}],72:[function(require,module,exports){
+},{"./decorators/inline":75}],75:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15333,7 +16419,7 @@ exports['default'] = function (instance) {
 module.exports = exports['default'];
 
 
-},{"../utils":86}],73:[function(require,module,exports){
+},{"../utils":89}],76:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15375,7 +16461,7 @@ exports['default'] = Exception;
 module.exports = exports['default'];
 
 
-},{}],74:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15423,7 +16509,7 @@ function registerDefaultHelpers(instance) {
 }
 
 
-},{"./helpers/block-helper-missing":75,"./helpers/each":76,"./helpers/helper-missing":77,"./helpers/if":78,"./helpers/log":79,"./helpers/lookup":80,"./helpers/with":81}],75:[function(require,module,exports){
+},{"./helpers/block-helper-missing":78,"./helpers/each":79,"./helpers/helper-missing":80,"./helpers/if":81,"./helpers/log":82,"./helpers/lookup":83,"./helpers/with":84}],78:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15464,7 +16550,7 @@ exports['default'] = function (instance) {
 module.exports = exports['default'];
 
 
-},{"../utils":86}],76:[function(require,module,exports){
+},{"../utils":89}],79:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15560,7 +16646,7 @@ exports['default'] = function (instance) {
 module.exports = exports['default'];
 
 
-},{"../exception":73,"../utils":86}],77:[function(require,module,exports){
+},{"../exception":76,"../utils":89}],80:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15587,7 +16673,7 @@ exports['default'] = function (instance) {
 module.exports = exports['default'];
 
 
-},{"../exception":73}],78:[function(require,module,exports){
+},{"../exception":76}],81:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15618,7 +16704,7 @@ exports['default'] = function (instance) {
 module.exports = exports['default'];
 
 
-},{"../utils":86}],79:[function(require,module,exports){
+},{"../utils":89}],82:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15646,7 +16732,7 @@ exports['default'] = function (instance) {
 module.exports = exports['default'];
 
 
-},{}],80:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15660,7 +16746,7 @@ exports['default'] = function (instance) {
 module.exports = exports['default'];
 
 
-},{}],81:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15695,7 +16781,7 @@ exports['default'] = function (instance) {
 module.exports = exports['default'];
 
 
-},{"../utils":86}],82:[function(require,module,exports){
+},{"../utils":89}],85:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -15744,7 +16830,7 @@ exports['default'] = logger;
 module.exports = exports['default'];
 
 
-},{"./utils":86}],83:[function(require,module,exports){
+},{"./utils":89}],86:[function(require,module,exports){
 /* global window */
 'use strict';
 
@@ -15766,7 +16852,7 @@ exports['default'] = function (Handlebars) {
 module.exports = exports['default'];
 
 
-},{}],84:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -16060,7 +17146,7 @@ function executeDecorators(fn, prog, container, depths, data, blockParams) {
 }
 
 
-},{"./base":60,"./exception":73,"./utils":86}],85:[function(require,module,exports){
+},{"./base":63,"./exception":76,"./utils":89}],88:[function(require,module,exports){
 // Build out our basic SafeString type
 'use strict';
 
@@ -16077,7 +17163,7 @@ exports['default'] = SafeString;
 module.exports = exports['default'];
 
 
-},{}],86:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -16203,7 +17289,7 @@ function appendContextPath(contextPath, id) {
 }
 
 
-},{}],87:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 // USAGE:
 // var handlebars = require('handlebars');
 /* eslint-disable no-var */
@@ -16230,7 +17316,7 @@ if (typeof require !== 'undefined' && require.extensions) {
   require.extensions['.hbs'] = extension;
 }
 
-},{"../dist/cjs/handlebars":58,"../dist/cjs/handlebars/compiler/printer":68,"fs":undefined}],88:[function(require,module,exports){
+},{"../dist/cjs/handlebars":61,"../dist/cjs/handlebars/compiler/printer":71,"fs":undefined}],91:[function(require,module,exports){
 /*
  * Copyright 2009-2011 Mozilla Foundation and contributors
  * Licensed under the New BSD license. See LICENSE.txt or:
@@ -16240,7 +17326,7 @@ exports.SourceMapGenerator = require('./source-map/source-map-generator').Source
 exports.SourceMapConsumer = require('./source-map/source-map-consumer').SourceMapConsumer;
 exports.SourceNode = require('./source-map/source-node').SourceNode;
 
-},{"./source-map/source-map-consumer":95,"./source-map/source-map-generator":96,"./source-map/source-node":97}],89:[function(require,module,exports){
+},{"./source-map/source-map-consumer":98,"./source-map/source-map-generator":99,"./source-map/source-node":100}],92:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -16349,7 +17435,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./util":98,"amdefine":2}],90:[function(require,module,exports){
+},{"./util":101,"amdefine":2}],93:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -16497,7 +17583,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./base64":91,"amdefine":2}],91:[function(require,module,exports){
+},{"./base64":94,"amdefine":2}],94:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -16572,7 +17658,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":2}],92:[function(require,module,exports){
+},{"amdefine":2}],95:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -16691,7 +17777,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":2}],93:[function(require,module,exports){
+},{"amdefine":2}],96:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2014 Mozilla Foundation and contributors
@@ -16779,7 +17865,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./util":98,"amdefine":2}],94:[function(require,module,exports){
+},{"./util":101,"amdefine":2}],97:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -16901,7 +17987,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":2}],95:[function(require,module,exports){
+},{"amdefine":2}],98:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -17980,7 +19066,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./array-set":89,"./base64-vlq":90,"./binary-search":92,"./quick-sort":94,"./util":98,"amdefine":2}],96:[function(require,module,exports){
+},{"./array-set":92,"./base64-vlq":93,"./binary-search":95,"./quick-sort":97,"./util":101,"amdefine":2}],99:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -18381,7 +19467,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./array-set":89,"./base64-vlq":90,"./mapping-list":93,"./util":98,"amdefine":2}],97:[function(require,module,exports){
+},{"./array-set":92,"./base64-vlq":93,"./mapping-list":96,"./util":101,"amdefine":2}],100:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -18797,7 +19883,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"./source-map-generator":96,"./util":98,"amdefine":2}],98:[function(require,module,exports){
+},{"./source-map-generator":99,"./util":101,"amdefine":2}],101:[function(require,module,exports){
 /* -*- Mode: js; js-indent-level: 2; -*- */
 /*
  * Copyright 2011 Mozilla Foundation and contributors
@@ -19169,7 +20255,7 @@ define(function (require, exports, module) {
 
 });
 
-},{"amdefine":2}],99:[function(require,module,exports){
+},{"amdefine":2}],102:[function(require,module,exports){
 var wrappy = require('wrappy')
 var reqs = Object.create(null)
 var once = require('once')
@@ -19215,10 +20301,10 @@ function slice (args) {
   return array
 }
 
-},{"once":126,"wrappy":155}],100:[function(require,module,exports){
+},{"once":129,"wrappy":160}],103:[function(require,module,exports){
 module.exports = require('util').inherits
 
-},{"util":undefined}],101:[function(require,module,exports){
+},{"util":undefined}],104:[function(require,module,exports){
 (function() {
   var expandIPv6, ipaddr, ipv4Part, ipv4Regexes, ipv6Part, ipv6Regexes, matchCIDR, root;
 
@@ -19687,7 +20773,7 @@ module.exports = require('util').inherits
 
 }).call(this);
 
-},{}],102:[function(require,module,exports){
+},{}],105:[function(require,module,exports){
 /**
  * @license
  * lodash <https://lodash.com/>
@@ -36093,7 +37179,7 @@ module.exports = require('util').inherits
   }
 }.call(this));
 
-},{}],103:[function(require,module,exports){
+},{}],106:[function(require,module,exports){
 /*!
  * media-typer
  * Copyright(c) 2014 Douglas Christopher Wilson
@@ -36365,7 +37451,7 @@ function splitType(string) {
   return obj
 }
 
-},{}],104:[function(require,module,exports){
+},{}],107:[function(require,module,exports){
 /*!
  * merge-descriptors
  * Copyright(c) 2014 Jonathan Ong
@@ -36427,7 +37513,7 @@ function merge(dest, src, redefine) {
   return dest
 }
 
-},{}],105:[function(require,module,exports){
+},{}],108:[function(require,module,exports){
 /*!
  * methods
  * Copyright(c) 2013-2014 TJ Holowaychuk
@@ -36498,7 +37584,7 @@ function getBasicNodeMethods() {
   ];
 }
 
-},{"http":undefined}],106:[function(require,module,exports){
+},{"http":undefined}],109:[function(require,module,exports){
 module.exports={
   "application/1d-interleaved-parityfec": {
     "source": "iana"
@@ -43127,7 +44213,7 @@ module.exports={
   }
 }
 
-},{}],107:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 /*!
  * mime-db
  * Copyright(c) 2014 Jonathan Ong
@@ -43140,7 +44226,7 @@ module.exports={
 
 module.exports = require('./db.json')
 
-},{"./db.json":106}],108:[function(require,module,exports){
+},{"./db.json":109}],111:[function(require,module,exports){
 /*!
  * mime-types
  * Copyright(c) 2014 Jonathan Ong
@@ -43330,7 +44416,7 @@ function populateMaps(extensions, types) {
   })
 }
 
-},{"mime-db":107,"path":undefined}],109:[function(require,module,exports){
+},{"mime-db":110,"path":undefined}],112:[function(require,module,exports){
 var path = require('path');
 var fs = require('fs');
 
@@ -43440,10 +44526,10 @@ mime.charsets = {
 
 module.exports = mime;
 
-},{"./types.json":110,"fs":undefined,"path":undefined}],110:[function(require,module,exports){
+},{"./types.json":113,"fs":undefined,"path":undefined}],113:[function(require,module,exports){
 module.exports={"application/andrew-inset":["ez"],"application/applixware":["aw"],"application/atom+xml":["atom"],"application/atomcat+xml":["atomcat"],"application/atomsvc+xml":["atomsvc"],"application/ccxml+xml":["ccxml"],"application/cdmi-capability":["cdmia"],"application/cdmi-container":["cdmic"],"application/cdmi-domain":["cdmid"],"application/cdmi-object":["cdmio"],"application/cdmi-queue":["cdmiq"],"application/cu-seeme":["cu"],"application/dash+xml":["mdp"],"application/davmount+xml":["davmount"],"application/docbook+xml":["dbk"],"application/dssc+der":["dssc"],"application/dssc+xml":["xdssc"],"application/ecmascript":["ecma"],"application/emma+xml":["emma"],"application/epub+zip":["epub"],"application/exi":["exi"],"application/font-tdpfr":["pfr"],"application/font-woff":["woff"],"application/font-woff2":["woff2"],"application/gml+xml":["gml"],"application/gpx+xml":["gpx"],"application/gxf":["gxf"],"application/hyperstudio":["stk"],"application/inkml+xml":["ink","inkml"],"application/ipfix":["ipfix"],"application/java-archive":["jar"],"application/java-serialized-object":["ser"],"application/java-vm":["class"],"application/javascript":["js"],"application/json":["json","map"],"application/json5":["json5"],"application/jsonml+json":["jsonml"],"application/lost+xml":["lostxml"],"application/mac-binhex40":["hqx"],"application/mac-compactpro":["cpt"],"application/mads+xml":["mads"],"application/marc":["mrc"],"application/marcxml+xml":["mrcx"],"application/mathematica":["ma","nb","mb"],"application/mathml+xml":["mathml"],"application/mbox":["mbox"],"application/mediaservercontrol+xml":["mscml"],"application/metalink+xml":["metalink"],"application/metalink4+xml":["meta4"],"application/mets+xml":["mets"],"application/mods+xml":["mods"],"application/mp21":["m21","mp21"],"application/mp4":["mp4s","m4p"],"application/msword":["doc","dot"],"application/mxf":["mxf"],"application/octet-stream":["bin","dms","lrf","mar","so","dist","distz","pkg","bpk","dump","elc","deploy","buffer"],"application/oda":["oda"],"application/oebps-package+xml":["opf"],"application/ogg":["ogx"],"application/omdoc+xml":["omdoc"],"application/onenote":["onetoc","onetoc2","onetmp","onepkg"],"application/oxps":["oxps"],"application/patch-ops-error+xml":["xer"],"application/pdf":["pdf"],"application/pgp-encrypted":["pgp"],"application/pgp-signature":["asc","sig"],"application/pics-rules":["prf"],"application/pkcs10":["p10"],"application/pkcs7-mime":["p7m","p7c"],"application/pkcs7-signature":["p7s"],"application/pkcs8":["p8"],"application/pkix-attr-cert":["ac"],"application/pkix-cert":["cer"],"application/pkix-crl":["crl"],"application/pkix-pkipath":["pkipath"],"application/pkixcmp":["pki"],"application/pls+xml":["pls"],"application/postscript":["ai","eps","ps"],"application/prs.cww":["cww"],"application/pskc+xml":["pskcxml"],"application/rdf+xml":["rdf"],"application/reginfo+xml":["rif"],"application/relax-ng-compact-syntax":["rnc"],"application/resource-lists+xml":["rl"],"application/resource-lists-diff+xml":["rld"],"application/rls-services+xml":["rs"],"application/rpki-ghostbusters":["gbr"],"application/rpki-manifest":["mft"],"application/rpki-roa":["roa"],"application/rsd+xml":["rsd"],"application/rss+xml":["rss"],"application/rtf":["rtf"],"application/sbml+xml":["sbml"],"application/scvp-cv-request":["scq"],"application/scvp-cv-response":["scs"],"application/scvp-vp-request":["spq"],"application/scvp-vp-response":["spp"],"application/sdp":["sdp"],"application/set-payment-initiation":["setpay"],"application/set-registration-initiation":["setreg"],"application/shf+xml":["shf"],"application/smil+xml":["smi","smil"],"application/sparql-query":["rq"],"application/sparql-results+xml":["srx"],"application/srgs":["gram"],"application/srgs+xml":["grxml"],"application/sru+xml":["sru"],"application/ssdl+xml":["ssdl"],"application/ssml+xml":["ssml"],"application/tei+xml":["tei","teicorpus"],"application/thraud+xml":["tfi"],"application/timestamped-data":["tsd"],"application/vnd.3gpp.pic-bw-large":["plb"],"application/vnd.3gpp.pic-bw-small":["psb"],"application/vnd.3gpp.pic-bw-var":["pvb"],"application/vnd.3gpp2.tcap":["tcap"],"application/vnd.3m.post-it-notes":["pwn"],"application/vnd.accpac.simply.aso":["aso"],"application/vnd.accpac.simply.imp":["imp"],"application/vnd.acucobol":["acu"],"application/vnd.acucorp":["atc","acutc"],"application/vnd.adobe.air-application-installer-package+zip":["air"],"application/vnd.adobe.formscentral.fcdt":["fcdt"],"application/vnd.adobe.fxp":["fxp","fxpl"],"application/vnd.adobe.xdp+xml":["xdp"],"application/vnd.adobe.xfdf":["xfdf"],"application/vnd.ahead.space":["ahead"],"application/vnd.airzip.filesecure.azf":["azf"],"application/vnd.airzip.filesecure.azs":["azs"],"application/vnd.amazon.ebook":["azw"],"application/vnd.americandynamics.acc":["acc"],"application/vnd.amiga.ami":["ami"],"application/vnd.android.package-archive":["apk"],"application/vnd.anser-web-certificate-issue-initiation":["cii"],"application/vnd.anser-web-funds-transfer-initiation":["fti"],"application/vnd.antix.game-component":["atx"],"application/vnd.apple.installer+xml":["mpkg"],"application/vnd.apple.mpegurl":["m3u8"],"application/vnd.aristanetworks.swi":["swi"],"application/vnd.astraea-software.iota":["iota"],"application/vnd.audiograph":["aep"],"application/vnd.blueice.multipass":["mpm"],"application/vnd.bmi":["bmi"],"application/vnd.businessobjects":["rep"],"application/vnd.chemdraw+xml":["cdxml"],"application/vnd.chipnuts.karaoke-mmd":["mmd"],"application/vnd.cinderella":["cdy"],"application/vnd.claymore":["cla"],"application/vnd.cloanto.rp9":["rp9"],"application/vnd.clonk.c4group":["c4g","c4d","c4f","c4p","c4u"],"application/vnd.cluetrust.cartomobile-config":["c11amc"],"application/vnd.cluetrust.cartomobile-config-pkg":["c11amz"],"application/vnd.commonspace":["csp"],"application/vnd.contact.cmsg":["cdbcmsg"],"application/vnd.cosmocaller":["cmc"],"application/vnd.crick.clicker":["clkx"],"application/vnd.crick.clicker.keyboard":["clkk"],"application/vnd.crick.clicker.palette":["clkp"],"application/vnd.crick.clicker.template":["clkt"],"application/vnd.crick.clicker.wordbank":["clkw"],"application/vnd.criticaltools.wbs+xml":["wbs"],"application/vnd.ctc-posml":["pml"],"application/vnd.cups-ppd":["ppd"],"application/vnd.curl.car":["car"],"application/vnd.curl.pcurl":["pcurl"],"application/vnd.dart":["dart"],"application/vnd.data-vision.rdz":["rdz"],"application/vnd.dece.data":["uvf","uvvf","uvd","uvvd"],"application/vnd.dece.ttml+xml":["uvt","uvvt"],"application/vnd.dece.unspecified":["uvx","uvvx"],"application/vnd.dece.zip":["uvz","uvvz"],"application/vnd.denovo.fcselayout-link":["fe_launch"],"application/vnd.dna":["dna"],"application/vnd.dolby.mlp":["mlp"],"application/vnd.dpgraph":["dpg"],"application/vnd.dreamfactory":["dfac"],"application/vnd.ds-keypoint":["kpxx"],"application/vnd.dvb.ait":["ait"],"application/vnd.dvb.service":["svc"],"application/vnd.dynageo":["geo"],"application/vnd.ecowin.chart":["mag"],"application/vnd.enliven":["nml"],"application/vnd.epson.esf":["esf"],"application/vnd.epson.msf":["msf"],"application/vnd.epson.quickanime":["qam"],"application/vnd.epson.salt":["slt"],"application/vnd.epson.ssf":["ssf"],"application/vnd.eszigno3+xml":["es3","et3"],"application/vnd.ezpix-album":["ez2"],"application/vnd.ezpix-package":["ez3"],"application/vnd.fdf":["fdf"],"application/vnd.fdsn.mseed":["mseed"],"application/vnd.fdsn.seed":["seed","dataless"],"application/vnd.flographit":["gph"],"application/vnd.fluxtime.clip":["ftc"],"application/vnd.framemaker":["fm","frame","maker","book"],"application/vnd.frogans.fnc":["fnc"],"application/vnd.frogans.ltf":["ltf"],"application/vnd.fsc.weblaunch":["fsc"],"application/vnd.fujitsu.oasys":["oas"],"application/vnd.fujitsu.oasys2":["oa2"],"application/vnd.fujitsu.oasys3":["oa3"],"application/vnd.fujitsu.oasysgp":["fg5"],"application/vnd.fujitsu.oasysprs":["bh2"],"application/vnd.fujixerox.ddd":["ddd"],"application/vnd.fujixerox.docuworks":["xdw"],"application/vnd.fujixerox.docuworks.binder":["xbd"],"application/vnd.fuzzysheet":["fzs"],"application/vnd.genomatix.tuxedo":["txd"],"application/vnd.geogebra.file":["ggb"],"application/vnd.geogebra.tool":["ggt"],"application/vnd.geometry-explorer":["gex","gre"],"application/vnd.geonext":["gxt"],"application/vnd.geoplan":["g2w"],"application/vnd.geospace":["g3w"],"application/vnd.gmx":["gmx"],"application/vnd.google-earth.kml+xml":["kml"],"application/vnd.google-earth.kmz":["kmz"],"application/vnd.grafeq":["gqf","gqs"],"application/vnd.groove-account":["gac"],"application/vnd.groove-help":["ghf"],"application/vnd.groove-identity-message":["gim"],"application/vnd.groove-injector":["grv"],"application/vnd.groove-tool-message":["gtm"],"application/vnd.groove-tool-template":["tpl"],"application/vnd.groove-vcard":["vcg"],"application/vnd.hal+xml":["hal"],"application/vnd.handheld-entertainment+xml":["zmm"],"application/vnd.hbci":["hbci"],"application/vnd.hhe.lesson-player":["les"],"application/vnd.hp-hpgl":["hpgl"],"application/vnd.hp-hpid":["hpid"],"application/vnd.hp-hps":["hps"],"application/vnd.hp-jlyt":["jlt"],"application/vnd.hp-pcl":["pcl"],"application/vnd.hp-pclxl":["pclxl"],"application/vnd.ibm.minipay":["mpy"],"application/vnd.ibm.modcap":["afp","listafp","list3820"],"application/vnd.ibm.rights-management":["irm"],"application/vnd.ibm.secure-container":["sc"],"application/vnd.iccprofile":["icc","icm"],"application/vnd.igloader":["igl"],"application/vnd.immervision-ivp":["ivp"],"application/vnd.immervision-ivu":["ivu"],"application/vnd.insors.igm":["igm"],"application/vnd.intercon.formnet":["xpw","xpx"],"application/vnd.intergeo":["i2g"],"application/vnd.intu.qbo":["qbo"],"application/vnd.intu.qfx":["qfx"],"application/vnd.ipunplugged.rcprofile":["rcprofile"],"application/vnd.irepository.package+xml":["irp"],"application/vnd.is-xpr":["xpr"],"application/vnd.isac.fcs":["fcs"],"application/vnd.jam":["jam"],"application/vnd.jcp.javame.midlet-rms":["rms"],"application/vnd.jisp":["jisp"],"application/vnd.joost.joda-archive":["joda"],"application/vnd.kahootz":["ktz","ktr"],"application/vnd.kde.karbon":["karbon"],"application/vnd.kde.kchart":["chrt"],"application/vnd.kde.kformula":["kfo"],"application/vnd.kde.kivio":["flw"],"application/vnd.kde.kontour":["kon"],"application/vnd.kde.kpresenter":["kpr","kpt"],"application/vnd.kde.kspread":["ksp"],"application/vnd.kde.kword":["kwd","kwt"],"application/vnd.kenameaapp":["htke"],"application/vnd.kidspiration":["kia"],"application/vnd.kinar":["kne","knp"],"application/vnd.koan":["skp","skd","skt","skm"],"application/vnd.kodak-descriptor":["sse"],"application/vnd.las.las+xml":["lasxml"],"application/vnd.llamagraphics.life-balance.desktop":["lbd"],"application/vnd.llamagraphics.life-balance.exchange+xml":["lbe"],"application/vnd.lotus-1-2-3":["123"],"application/vnd.lotus-approach":["apr"],"application/vnd.lotus-freelance":["pre"],"application/vnd.lotus-notes":["nsf"],"application/vnd.lotus-organizer":["org"],"application/vnd.lotus-screencam":["scm"],"application/vnd.lotus-wordpro":["lwp"],"application/vnd.macports.portpkg":["portpkg"],"application/vnd.mcd":["mcd"],"application/vnd.medcalcdata":["mc1"],"application/vnd.mediastation.cdkey":["cdkey"],"application/vnd.mfer":["mwf"],"application/vnd.mfmp":["mfm"],"application/vnd.micrografx.flo":["flo"],"application/vnd.micrografx.igx":["igx"],"application/vnd.mif":["mif"],"application/vnd.mobius.daf":["daf"],"application/vnd.mobius.dis":["dis"],"application/vnd.mobius.mbk":["mbk"],"application/vnd.mobius.mqy":["mqy"],"application/vnd.mobius.msl":["msl"],"application/vnd.mobius.plc":["plc"],"application/vnd.mobius.txf":["txf"],"application/vnd.mophun.application":["mpn"],"application/vnd.mophun.certificate":["mpc"],"application/vnd.mozilla.xul+xml":["xul"],"application/vnd.ms-artgalry":["cil"],"application/vnd.ms-cab-compressed":["cab"],"application/vnd.ms-excel":["xls","xlm","xla","xlc","xlt","xlw"],"application/vnd.ms-excel.addin.macroenabled.12":["xlam"],"application/vnd.ms-excel.sheet.binary.macroenabled.12":["xlsb"],"application/vnd.ms-excel.sheet.macroenabled.12":["xlsm"],"application/vnd.ms-excel.template.macroenabled.12":["xltm"],"application/vnd.ms-fontobject":["eot"],"application/vnd.ms-htmlhelp":["chm"],"application/vnd.ms-ims":["ims"],"application/vnd.ms-lrm":["lrm"],"application/vnd.ms-officetheme":["thmx"],"application/vnd.ms-pki.seccat":["cat"],"application/vnd.ms-pki.stl":["stl"],"application/vnd.ms-powerpoint":["ppt","pps","pot"],"application/vnd.ms-powerpoint.addin.macroenabled.12":["ppam"],"application/vnd.ms-powerpoint.presentation.macroenabled.12":["pptm"],"application/vnd.ms-powerpoint.slide.macroenabled.12":["sldm"],"application/vnd.ms-powerpoint.slideshow.macroenabled.12":["ppsm"],"application/vnd.ms-powerpoint.template.macroenabled.12":["potm"],"application/vnd.ms-project":["mpp","mpt"],"application/vnd.ms-word.document.macroenabled.12":["docm"],"application/vnd.ms-word.template.macroenabled.12":["dotm"],"application/vnd.ms-works":["wps","wks","wcm","wdb"],"application/vnd.ms-wpl":["wpl"],"application/vnd.ms-xpsdocument":["xps"],"application/vnd.mseq":["mseq"],"application/vnd.musician":["mus"],"application/vnd.muvee.style":["msty"],"application/vnd.mynfc":["taglet"],"application/vnd.neurolanguage.nlu":["nlu"],"application/vnd.nitf":["ntf","nitf"],"application/vnd.noblenet-directory":["nnd"],"application/vnd.noblenet-sealer":["nns"],"application/vnd.noblenet-web":["nnw"],"application/vnd.nokia.n-gage.data":["ngdat"],"application/vnd.nokia.radio-preset":["rpst"],"application/vnd.nokia.radio-presets":["rpss"],"application/vnd.novadigm.edm":["edm"],"application/vnd.novadigm.edx":["edx"],"application/vnd.novadigm.ext":["ext"],"application/vnd.oasis.opendocument.chart":["odc"],"application/vnd.oasis.opendocument.chart-template":["otc"],"application/vnd.oasis.opendocument.database":["odb"],"application/vnd.oasis.opendocument.formula":["odf"],"application/vnd.oasis.opendocument.formula-template":["odft"],"application/vnd.oasis.opendocument.graphics":["odg"],"application/vnd.oasis.opendocument.graphics-template":["otg"],"application/vnd.oasis.opendocument.image":["odi"],"application/vnd.oasis.opendocument.image-template":["oti"],"application/vnd.oasis.opendocument.presentation":["odp"],"application/vnd.oasis.opendocument.presentation-template":["otp"],"application/vnd.oasis.opendocument.spreadsheet":["ods"],"application/vnd.oasis.opendocument.spreadsheet-template":["ots"],"application/vnd.oasis.opendocument.text":["odt"],"application/vnd.oasis.opendocument.text-master":["odm"],"application/vnd.oasis.opendocument.text-template":["ott"],"application/vnd.oasis.opendocument.text-web":["oth"],"application/vnd.olpc-sugar":["xo"],"application/vnd.oma.dd2+xml":["dd2"],"application/vnd.openofficeorg.extension":["oxt"],"application/vnd.openxmlformats-officedocument.presentationml.presentation":["pptx"],"application/vnd.openxmlformats-officedocument.presentationml.slide":["sldx"],"application/vnd.openxmlformats-officedocument.presentationml.slideshow":["ppsx"],"application/vnd.openxmlformats-officedocument.presentationml.template":["potx"],"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":["xlsx"],"application/vnd.openxmlformats-officedocument.spreadsheetml.template":["xltx"],"application/vnd.openxmlformats-officedocument.wordprocessingml.document":["docx"],"application/vnd.openxmlformats-officedocument.wordprocessingml.template":["dotx"],"application/vnd.osgeo.mapguide.package":["mgp"],"application/vnd.osgi.dp":["dp"],"application/vnd.osgi.subsystem":["esa"],"application/vnd.palm":["pdb","pqa","oprc"],"application/vnd.pawaafile":["paw"],"application/vnd.pg.format":["str"],"application/vnd.pg.osasli":["ei6"],"application/vnd.picsel":["efif"],"application/vnd.pmi.widget":["wg"],"application/vnd.pocketlearn":["plf"],"application/vnd.powerbuilder6":["pbd"],"application/vnd.previewsystems.box":["box"],"application/vnd.proteus.magazine":["mgz"],"application/vnd.publishare-delta-tree":["qps"],"application/vnd.pvi.ptid1":["ptid"],"application/vnd.quark.quarkxpress":["qxd","qxt","qwd","qwt","qxl","qxb"],"application/vnd.realvnc.bed":["bed"],"application/vnd.recordare.musicxml":["mxl"],"application/vnd.recordare.musicxml+xml":["musicxml"],"application/vnd.rig.cryptonote":["cryptonote"],"application/vnd.rim.cod":["cod"],"application/vnd.rn-realmedia":["rm"],"application/vnd.rn-realmedia-vbr":["rmvb"],"application/vnd.route66.link66+xml":["link66"],"application/vnd.sailingtracker.track":["st"],"application/vnd.seemail":["see"],"application/vnd.sema":["sema"],"application/vnd.semd":["semd"],"application/vnd.semf":["semf"],"application/vnd.shana.informed.formdata":["ifm"],"application/vnd.shana.informed.formtemplate":["itp"],"application/vnd.shana.informed.interchange":["iif"],"application/vnd.shana.informed.package":["ipk"],"application/vnd.simtech-mindmapper":["twd","twds"],"application/vnd.smaf":["mmf"],"application/vnd.smart.teacher":["teacher"],"application/vnd.solent.sdkm+xml":["sdkm","sdkd"],"application/vnd.spotfire.dxp":["dxp"],"application/vnd.spotfire.sfs":["sfs"],"application/vnd.stardivision.calc":["sdc"],"application/vnd.stardivision.draw":["sda"],"application/vnd.stardivision.impress":["sdd"],"application/vnd.stardivision.math":["smf"],"application/vnd.stardivision.writer":["sdw","vor"],"application/vnd.stardivision.writer-global":["sgl"],"application/vnd.stepmania.package":["smzip"],"application/vnd.stepmania.stepchart":["sm"],"application/vnd.sun.xml.calc":["sxc"],"application/vnd.sun.xml.calc.template":["stc"],"application/vnd.sun.xml.draw":["sxd"],"application/vnd.sun.xml.draw.template":["std"],"application/vnd.sun.xml.impress":["sxi"],"application/vnd.sun.xml.impress.template":["sti"],"application/vnd.sun.xml.math":["sxm"],"application/vnd.sun.xml.writer":["sxw"],"application/vnd.sun.xml.writer.global":["sxg"],"application/vnd.sun.xml.writer.template":["stw"],"application/vnd.sus-calendar":["sus","susp"],"application/vnd.svd":["svd"],"application/vnd.symbian.install":["sis","sisx"],"application/vnd.syncml+xml":["xsm"],"application/vnd.syncml.dm+wbxml":["bdm"],"application/vnd.syncml.dm+xml":["xdm"],"application/vnd.tao.intent-module-archive":["tao"],"application/vnd.tcpdump.pcap":["pcap","cap","dmp"],"application/vnd.tmobile-livetv":["tmo"],"application/vnd.trid.tpt":["tpt"],"application/vnd.triscape.mxs":["mxs"],"application/vnd.trueapp":["tra"],"application/vnd.ufdl":["ufd","ufdl"],"application/vnd.uiq.theme":["utz"],"application/vnd.umajin":["umj"],"application/vnd.unity":["unityweb"],"application/vnd.uoml+xml":["uoml"],"application/vnd.vcx":["vcx"],"application/vnd.visio":["vsd","vst","vss","vsw"],"application/vnd.visionary":["vis"],"application/vnd.vsf":["vsf"],"application/vnd.wap.wbxml":["wbxml"],"application/vnd.wap.wmlc":["wmlc"],"application/vnd.wap.wmlscriptc":["wmlsc"],"application/vnd.webturbo":["wtb"],"application/vnd.wolfram.player":["nbp"],"application/vnd.wordperfect":["wpd"],"application/vnd.wqd":["wqd"],"application/vnd.wt.stf":["stf"],"application/vnd.xara":["xar"],"application/vnd.xfdl":["xfdl"],"application/vnd.yamaha.hv-dic":["hvd"],"application/vnd.yamaha.hv-script":["hvs"],"application/vnd.yamaha.hv-voice":["hvp"],"application/vnd.yamaha.openscoreformat":["osf"],"application/vnd.yamaha.openscoreformat.osfpvg+xml":["osfpvg"],"application/vnd.yamaha.smaf-audio":["saf"],"application/vnd.yamaha.smaf-phrase":["spf"],"application/vnd.yellowriver-custom-menu":["cmp"],"application/vnd.zul":["zir","zirz"],"application/vnd.zzazz.deck+xml":["zaz"],"application/voicexml+xml":["vxml"],"application/widget":["wgt"],"application/winhlp":["hlp"],"application/wsdl+xml":["wsdl"],"application/wspolicy+xml":["wspolicy"],"application/x-7z-compressed":["7z"],"application/x-abiword":["abw"],"application/x-ace-compressed":["ace"],"application/x-apple-diskimage":["dmg"],"application/x-authorware-bin":["aab","x32","u32","vox"],"application/x-authorware-map":["aam"],"application/x-authorware-seg":["aas"],"application/x-bcpio":["bcpio"],"application/x-bittorrent":["torrent"],"application/x-blorb":["blb","blorb"],"application/x-bzip":["bz"],"application/x-bzip2":["bz2","boz"],"application/x-cbr":["cbr","cba","cbt","cbz","cb7"],"application/x-cdlink":["vcd"],"application/x-cfs-compressed":["cfs"],"application/x-chat":["chat"],"application/x-chess-pgn":["pgn"],"application/x-chrome-extension":["crx"],"application/x-conference":["nsc"],"application/x-cpio":["cpio"],"application/x-csh":["csh"],"application/x-debian-package":["deb","udeb"],"application/x-dgc-compressed":["dgc"],"application/x-director":["dir","dcr","dxr","cst","cct","cxt","w3d","fgd","swa"],"application/x-doom":["wad"],"application/x-dtbncx+xml":["ncx"],"application/x-dtbook+xml":["dtb"],"application/x-dtbresource+xml":["res"],"application/x-dvi":["dvi"],"application/x-envoy":["evy"],"application/x-eva":["eva"],"application/x-font-bdf":["bdf"],"application/x-font-ghostscript":["gsf"],"application/x-font-linux-psf":["psf"],"application/x-font-otf":["otf"],"application/x-font-pcf":["pcf"],"application/x-font-snf":["snf"],"application/x-font-ttf":["ttf","ttc"],"application/x-font-type1":["pfa","pfb","pfm","afm"],"application/x-freearc":["arc"],"application/x-futuresplash":["spl"],"application/x-gca-compressed":["gca"],"application/x-glulx":["ulx"],"application/x-gnumeric":["gnumeric"],"application/x-gramps-xml":["gramps"],"application/x-gtar":["gtar"],"application/x-hdf":["hdf"],"application/x-install-instructions":["install"],"application/x-iso9660-image":["iso"],"application/x-java-jnlp-file":["jnlp"],"application/x-latex":["latex"],"application/x-lua-bytecode":["luac"],"application/x-lzh-compressed":["lzh","lha"],"application/x-mie":["mie"],"application/x-mobipocket-ebook":["prc","mobi"],"application/x-ms-application":["application"],"application/x-ms-shortcut":["lnk"],"application/x-ms-wmd":["wmd"],"application/x-ms-wmz":["wmz"],"application/x-ms-xbap":["xbap"],"application/x-msaccess":["mdb"],"application/x-msbinder":["obd"],"application/x-mscardfile":["crd"],"application/x-msclip":["clp"],"application/x-msdownload":["exe","dll","com","bat","msi"],"application/x-msmediaview":["mvb","m13","m14"],"application/x-msmetafile":["wmf","wmz","emf","emz"],"application/x-msmoney":["mny"],"application/x-mspublisher":["pub"],"application/x-msschedule":["scd"],"application/x-msterminal":["trm"],"application/x-mswrite":["wri"],"application/x-netcdf":["nc","cdf"],"application/x-nzb":["nzb"],"application/x-pkcs12":["p12","pfx"],"application/x-pkcs7-certificates":["p7b","spc"],"application/x-pkcs7-certreqresp":["p7r"],"application/x-rar-compressed":["rar"],"application/x-research-info-systems":["ris"],"application/x-sh":["sh"],"application/x-shar":["shar"],"application/x-shockwave-flash":["swf"],"application/x-silverlight-app":["xap"],"application/x-sql":["sql"],"application/x-stuffit":["sit"],"application/x-stuffitx":["sitx"],"application/x-subrip":["srt"],"application/x-sv4cpio":["sv4cpio"],"application/x-sv4crc":["sv4crc"],"application/x-t3vm-image":["t3"],"application/x-tads":["gam"],"application/x-tar":["tar"],"application/x-tcl":["tcl"],"application/x-tex":["tex"],"application/x-tex-tfm":["tfm"],"application/x-texinfo":["texinfo","texi"],"application/x-tgif":["obj"],"application/x-ustar":["ustar"],"application/x-wais-source":["src"],"application/x-web-app-manifest+json":["webapp"],"application/x-x509-ca-cert":["der","crt"],"application/x-xfig":["fig"],"application/x-xliff+xml":["xlf"],"application/x-xpinstall":["xpi"],"application/x-xz":["xz"],"application/x-zmachine":["z1","z2","z3","z4","z5","z6","z7","z8"],"application/xaml+xml":["xaml"],"application/xcap-diff+xml":["xdf"],"application/xenc+xml":["xenc"],"application/xhtml+xml":["xhtml","xht"],"application/xml":["xml","xsl","xsd"],"application/xml-dtd":["dtd"],"application/xop+xml":["xop"],"application/xproc+xml":["xpl"],"application/xslt+xml":["xslt"],"application/xspf+xml":["xspf"],"application/xv+xml":["mxml","xhvml","xvml","xvm"],"application/yang":["yang"],"application/yin+xml":["yin"],"application/zip":["zip"],"audio/adpcm":["adp"],"audio/basic":["au","snd"],"audio/midi":["mid","midi","kar","rmi"],"audio/mp4":["mp4a","m4a"],"audio/mpeg":["mpga","mp2","mp2a","mp3","m2a","m3a"],"audio/ogg":["oga","ogg","spx"],"audio/s3m":["s3m"],"audio/silk":["sil"],"audio/vnd.dece.audio":["uva","uvva"],"audio/vnd.digital-winds":["eol"],"audio/vnd.dra":["dra"],"audio/vnd.dts":["dts"],"audio/vnd.dts.hd":["dtshd"],"audio/vnd.lucent.voice":["lvp"],"audio/vnd.ms-playready.media.pya":["pya"],"audio/vnd.nuera.ecelp4800":["ecelp4800"],"audio/vnd.nuera.ecelp7470":["ecelp7470"],"audio/vnd.nuera.ecelp9600":["ecelp9600"],"audio/vnd.rip":["rip"],"audio/webm":["weba"],"audio/x-aac":["aac"],"audio/x-aiff":["aif","aiff","aifc"],"audio/x-caf":["caf"],"audio/x-flac":["flac"],"audio/x-matroska":["mka"],"audio/x-mpegurl":["m3u"],"audio/x-ms-wax":["wax"],"audio/x-ms-wma":["wma"],"audio/x-pn-realaudio":["ram","ra"],"audio/x-pn-realaudio-plugin":["rmp"],"audio/x-wav":["wav"],"audio/xm":["xm"],"chemical/x-cdx":["cdx"],"chemical/x-cif":["cif"],"chemical/x-cmdf":["cmdf"],"chemical/x-cml":["cml"],"chemical/x-csml":["csml"],"chemical/x-xyz":["xyz"],"font/opentype":["otf"],"image/bmp":["bmp"],"image/cgm":["cgm"],"image/g3fax":["g3"],"image/gif":["gif"],"image/ief":["ief"],"image/jpeg":["jpeg","jpg","jpe"],"image/ktx":["ktx"],"image/png":["png"],"image/prs.btif":["btif"],"image/sgi":["sgi"],"image/svg+xml":["svg","svgz"],"image/tiff":["tiff","tif"],"image/vnd.adobe.photoshop":["psd"],"image/vnd.dece.graphic":["uvi","uvvi","uvg","uvvg"],"image/vnd.djvu":["djvu","djv"],"image/vnd.dvb.subtitle":["sub"],"image/vnd.dwg":["dwg"],"image/vnd.dxf":["dxf"],"image/vnd.fastbidsheet":["fbs"],"image/vnd.fpx":["fpx"],"image/vnd.fst":["fst"],"image/vnd.fujixerox.edmics-mmr":["mmr"],"image/vnd.fujixerox.edmics-rlc":["rlc"],"image/vnd.ms-modi":["mdi"],"image/vnd.ms-photo":["wdp"],"image/vnd.net-fpx":["npx"],"image/vnd.wap.wbmp":["wbmp"],"image/vnd.xiff":["xif"],"image/webp":["webp"],"image/x-3ds":["3ds"],"image/x-cmu-raster":["ras"],"image/x-cmx":["cmx"],"image/x-freehand":["fh","fhc","fh4","fh5","fh7"],"image/x-icon":["ico"],"image/x-mrsid-image":["sid"],"image/x-pcx":["pcx"],"image/x-pict":["pic","pct"],"image/x-portable-anymap":["pnm"],"image/x-portable-bitmap":["pbm"],"image/x-portable-graymap":["pgm"],"image/x-portable-pixmap":["ppm"],"image/x-rgb":["rgb"],"image/x-tga":["tga"],"image/x-xbitmap":["xbm"],"image/x-xpixmap":["xpm"],"image/x-xwindowdump":["xwd"],"message/rfc822":["eml","mime"],"model/iges":["igs","iges"],"model/mesh":["msh","mesh","silo"],"model/vnd.collada+xml":["dae"],"model/vnd.dwf":["dwf"],"model/vnd.gdl":["gdl"],"model/vnd.gtw":["gtw"],"model/vnd.mts":["mts"],"model/vnd.vtu":["vtu"],"model/vrml":["wrl","vrml"],"model/x3d+binary":["x3db","x3dbz"],"model/x3d+vrml":["x3dv","x3dvz"],"model/x3d+xml":["x3d","x3dz"],"text/cache-manifest":["appcache","manifest"],"text/calendar":["ics","ifb"],"text/coffeescript":["coffee"],"text/css":["css"],"text/csv":["csv"],"text/hjson":["hjson"],"text/html":["html","htm"],"text/jade":["jade"],"text/jsx":["jsx"],"text/less":["less"],"text/n3":["n3"],"text/plain":["txt","text","conf","def","list","log","in","ini"],"text/prs.lines.tag":["dsc"],"text/richtext":["rtx"],"text/sgml":["sgml","sgm"],"text/stylus":["stylus","styl"],"text/tab-separated-values":["tsv"],"text/troff":["t","tr","roff","man","me","ms"],"text/turtle":["ttl"],"text/uri-list":["uri","uris","urls"],"text/vcard":["vcard"],"text/vnd.curl":["curl"],"text/vnd.curl.dcurl":["dcurl"],"text/vnd.curl.mcurl":["mcurl"],"text/vnd.curl.scurl":["scurl"],"text/vnd.dvb.subtitle":["sub"],"text/vnd.fly":["fly"],"text/vnd.fmi.flexstor":["flx"],"text/vnd.graphviz":["gv"],"text/vnd.in3d.3dml":["3dml"],"text/vnd.in3d.spot":["spot"],"text/vnd.sun.j2me.app-descriptor":["jad"],"text/vnd.wap.wml":["wml"],"text/vnd.wap.wmlscript":["wmls"],"text/vtt":["vtt"],"text/x-asm":["s","asm"],"text/x-c":["c","cc","cxx","cpp","h","hh","dic"],"text/x-component":["htc"],"text/x-fortran":["f","for","f77","f90"],"text/x-handlebars-template":["hbs"],"text/x-java-source":["java"],"text/x-lua":["lua"],"text/x-markdown":["markdown","md","mkd"],"text/x-nfo":["nfo"],"text/x-opml":["opml"],"text/x-pascal":["p","pas"],"text/x-sass":["sass"],"text/x-scss":["scss"],"text/x-setext":["etx"],"text/x-sfv":["sfv"],"text/x-uuencode":["uu"],"text/x-vcalendar":["vcs"],"text/x-vcard":["vcf"],"text/yaml":["yaml","yml"],"video/3gpp":["3gp"],"video/3gpp2":["3g2"],"video/h261":["h261"],"video/h263":["h263"],"video/h264":["h264"],"video/jpeg":["jpgv"],"video/jpm":["jpm","jpgm"],"video/mj2":["mj2","mjp2"],"video/mp2t":["ts"],"video/mp4":["mp4","mp4v","mpg4"],"video/mpeg":["mpeg","mpg","mpe","m1v","m2v"],"video/ogg":["ogv"],"video/quicktime":["qt","mov"],"video/vnd.dece.hd":["uvh","uvvh"],"video/vnd.dece.mobile":["uvm","uvvm"],"video/vnd.dece.pd":["uvp","uvvp"],"video/vnd.dece.sd":["uvs","uvvs"],"video/vnd.dece.video":["uvv","uvvv"],"video/vnd.dvb.file":["dvb"],"video/vnd.fvt":["fvt"],"video/vnd.mpegurl":["mxu","m4u"],"video/vnd.ms-playready.media.pyv":["pyv"],"video/vnd.uvvu.mp4":["uvu","uvvu"],"video/vnd.vivo":["viv"],"video/webm":["webm"],"video/x-f4v":["f4v"],"video/x-fli":["fli"],"video/x-flv":["flv"],"video/x-m4v":["m4v"],"video/x-matroska":["mkv","mk3d","mks"],"video/x-mng":["mng"],"video/x-ms-asf":["asf","asx"],"video/x-ms-vob":["vob"],"video/x-ms-wm":["wm"],"video/x-ms-wmv":["wmv"],"video/x-ms-wmx":["wmx"],"video/x-ms-wvx":["wvx"],"video/x-msvideo":["avi"],"video/x-sgi-movie":["movie"],"video/x-smv":["smv"],"x-conference/x-cooltalk":["ice"]}
 
-},{}],111:[function(require,module,exports){
+},{}],114:[function(require,module,exports){
 module.exports = minimatch
 minimatch.Minimatch = Minimatch
 
@@ -44357,7 +45443,7 @@ function regExpEscape (s) {
   return s.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
 }
 
-},{"brace-expansion":7,"path":undefined}],112:[function(require,module,exports){
+},{"brace-expansion":7,"path":undefined}],115:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -44484,7 +45570,7 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],113:[function(require,module,exports){
+},{}],116:[function(require,module,exports){
 
 var preferredCharsets = require('./lib/charset');
 var preferredEncodings = require('./lib/encoding');
@@ -44548,7 +45634,7 @@ Negotiator.prototype.preferredLanguages = Negotiator.prototype.languages;
 Negotiator.prototype.preferredMediaType = Negotiator.prototype.mediaType;
 Negotiator.prototype.preferredMediaTypes = Negotiator.prototype.mediaTypes;
 
-},{"./lib/charset":114,"./lib/encoding":115,"./lib/language":116,"./lib/mediaType":117}],114:[function(require,module,exports){
+},{"./lib/charset":117,"./lib/encoding":118,"./lib/language":119,"./lib/mediaType":120}],117:[function(require,module,exports){
 module.exports = preferredCharsets;
 preferredCharsets.preferredCharsets = preferredCharsets;
 
@@ -44652,7 +45738,7 @@ function isQuality(spec) {
   return spec.q > 0;
 }
 
-},{}],115:[function(require,module,exports){
+},{}],118:[function(require,module,exports){
 module.exports = preferredEncodings;
 preferredEncodings.preferredEncodings = preferredEncodings;
 
@@ -44772,7 +45858,7 @@ function isQuality(spec) {
   return spec.q > 0;
 }
 
-},{}],116:[function(require,module,exports){
+},{}],119:[function(require,module,exports){
 module.exports = preferredLanguages;
 preferredLanguages.preferredLanguages = preferredLanguages;
 
@@ -44886,7 +45972,7 @@ function isQuality(spec) {
   return spec.q > 0;
 }
 
-},{}],117:[function(require,module,exports){
+},{}],120:[function(require,module,exports){
 /**
  * negotiator
  * Copyright(c) 2012 Isaac Z. Schlueter
@@ -45067,7 +46153,7 @@ function splitMediaTypes(accept) {
   return accepts;
 }
 
-},{}],118:[function(require,module,exports){
+},{}],121:[function(require,module,exports){
 'use strict';
 
 // modified from https://github.com/es-shims/es5-shim
@@ -45197,7 +46283,7 @@ keysShim.shim = function shimObjectKeys() {
 
 module.exports = keysShim;
 
-},{"./isArguments":119}],119:[function(require,module,exports){
+},{"./isArguments":122}],122:[function(require,module,exports){
 'use strict';
 
 var toStr = Object.prototype.toString;
@@ -45216,7 +46302,7 @@ module.exports = function isArguments(value) {
 	return isArgs;
 };
 
-},{}],120:[function(require,module,exports){
+},{}],123:[function(require,module,exports){
 'use strict';
 
 var keys = require('object-keys');
@@ -45255,7 +46341,7 @@ module.exports = function hasSymbols() {
 	return true;
 };
 
-},{"object-keys":118}],121:[function(require,module,exports){
+},{"object-keys":121}],124:[function(require,module,exports){
 'use strict';
 
 // modified from https://github.com/es-shims/es6-shim
@@ -45296,7 +46382,7 @@ module.exports = function assign(target, source1) {
 	return objTarget;
 };
 
-},{"./hasSymbols":120,"function-bind":53,"object-keys":118}],122:[function(require,module,exports){
+},{"./hasSymbols":123,"function-bind":56,"object-keys":121}],125:[function(require,module,exports){
 'use strict';
 
 var defineProperties = require('define-properties');
@@ -45313,7 +46399,7 @@ defineProperties(implementation, {
 
 module.exports = implementation;
 
-},{"./implementation":121,"./polyfill":123,"./shim":124,"define-properties":15}],123:[function(require,module,exports){
+},{"./implementation":124,"./polyfill":126,"./shim":127,"define-properties":15}],126:[function(require,module,exports){
 'use strict';
 
 var implementation = require('./implementation');
@@ -45365,7 +46451,7 @@ module.exports = function getPolyfill() {
 	return Object.assign;
 };
 
-},{"./implementation":121}],124:[function(require,module,exports){
+},{"./implementation":124}],127:[function(require,module,exports){
 'use strict';
 
 var define = require('define-properties');
@@ -45381,7 +46467,7 @@ module.exports = function shimAssign() {
 	return polyfill;
 };
 
-},{"./polyfill":123,"define-properties":15}],125:[function(require,module,exports){
+},{"./polyfill":126,"define-properties":15}],128:[function(require,module,exports){
 /*!
  * on-finished
  * Copyright(c) 2013 Jonathan Ong
@@ -45579,7 +46665,7 @@ function patchAssignSocket(res, callback) {
   }
 }
 
-},{"ee-first":22}],126:[function(require,module,exports){
+},{"ee-first":22}],129:[function(require,module,exports){
 var wrappy = require('wrappy')
 module.exports = wrappy(once)
 
@@ -45602,7 +46688,7 @@ function once (fn) {
   return f
 }
 
-},{"wrappy":155}],127:[function(require,module,exports){
+},{"wrappy":160}],130:[function(require,module,exports){
 /*!
  * parseurl
  * Copyright(c) 2014 Jonathan Ong
@@ -45742,7 +46828,7 @@ function fresh(url, parsedUrl) {
     && parsedUrl._raw === url
 }
 
-},{"url":undefined}],128:[function(require,module,exports){
+},{"url":undefined}],131:[function(require,module,exports){
 'use strict';
 
 function posix(path) {
@@ -45764,7 +46850,7 @@ module.exports = process.platform === 'win32' ? win32 : posix;
 module.exports.posix = posix;
 module.exports.win32 = win32;
 
-},{}],129:[function(require,module,exports){
+},{}],132:[function(require,module,exports){
 /**
  * Expose `pathtoRegexp`.
  */
@@ -45895,12 +46981,12 @@ function pathtoRegexp(path, keys, options) {
   return new RegExp(path, flags);
 };
 
-},{}],130:[function(require,module,exports){
+},{}],133:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./lib')
 
-},{"./lib":135}],131:[function(require,module,exports){
+},{"./lib":138}],134:[function(require,module,exports){
 'use strict';
 
 var asap = require('asap/raw');
@@ -46115,7 +47201,7 @@ function doResolve(fn, promise) {
   }
 }
 
-},{"asap/raw":5}],132:[function(require,module,exports){
+},{"asap/raw":5}],135:[function(require,module,exports){
 'use strict';
 
 var Promise = require('./core.js');
@@ -46130,7 +47216,7 @@ Promise.prototype.done = function (onFulfilled, onRejected) {
   });
 };
 
-},{"./core.js":131}],133:[function(require,module,exports){
+},{"./core.js":134}],136:[function(require,module,exports){
 'use strict';
 
 //This file contains the ES6 extensions to the core Promises/A+ API
@@ -46239,7 +47325,7 @@ Promise.prototype['catch'] = function (onRejected) {
   return this.then(null, onRejected);
 };
 
-},{"./core.js":131}],134:[function(require,module,exports){
+},{"./core.js":134}],137:[function(require,module,exports){
 'use strict';
 
 var Promise = require('./core.js');
@@ -46257,7 +47343,7 @@ Promise.prototype['finally'] = function (f) {
   });
 };
 
-},{"./core.js":131}],135:[function(require,module,exports){
+},{"./core.js":134}],138:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./core.js');
@@ -46267,7 +47353,7 @@ require('./es6-extensions.js');
 require('./node-extensions.js');
 require('./synchronous.js');
 
-},{"./core.js":131,"./done.js":132,"./es6-extensions.js":133,"./finally.js":134,"./node-extensions.js":136,"./synchronous.js":137}],136:[function(require,module,exports){
+},{"./core.js":134,"./done.js":135,"./es6-extensions.js":136,"./finally.js":137,"./node-extensions.js":139,"./synchronous.js":140}],139:[function(require,module,exports){
 'use strict';
 
 // This file contains then/promise specific extensions that are only useful
@@ -46399,7 +47485,7 @@ Promise.prototype.nodeify = function (callback, ctx) {
   });
 }
 
-},{"./core.js":131,"asap":4}],137:[function(require,module,exports){
+},{"./core.js":134,"asap":4}],140:[function(require,module,exports){
 'use strict';
 
 var Promise = require('./core.js');
@@ -46463,7 +47549,7 @@ Promise.disableSynchronous = function() {
   Promise.prototype.getState = undefined;
 };
 
-},{"./core.js":131}],138:[function(require,module,exports){
+},{"./core.js":134}],141:[function(require,module,exports){
 /*!
  * proxy-addr
  * Copyright(c) 2014 Douglas Christopher Wilson
@@ -46812,7 +47898,7 @@ function trustSingle(subnet) {
   };
 }
 
-},{"forwarded":50,"ipaddr.js":101}],139:[function(require,module,exports){
+},{"forwarded":53,"ipaddr.js":104}],142:[function(require,module,exports){
 // Load modules
 
 var Stringify = require('./stringify');
@@ -46829,7 +47915,7 @@ module.exports = {
     parse: Parse
 };
 
-},{"./parse":140,"./stringify":141}],140:[function(require,module,exports){
+},{"./parse":143,"./stringify":144}],143:[function(require,module,exports){
 // Load modules
 
 var Utils = require('./utils');
@@ -47017,7 +48103,7 @@ module.exports = function (str, options) {
     return Utils.compact(obj);
 };
 
-},{"./utils":142}],141:[function(require,module,exports){
+},{"./utils":145}],144:[function(require,module,exports){
 // Load modules
 
 var Utils = require('./utils');
@@ -47140,7 +48226,7 @@ module.exports = function (obj, options) {
     return keys.join(delimiter);
 };
 
-},{"./utils":142}],142:[function(require,module,exports){
+},{"./utils":145}],145:[function(require,module,exports){
 // Load modules
 
 
@@ -47332,7 +48418,7 @@ exports.isBuffer = function (obj) {
               obj.constructor.isBuffer(obj));
 };
 
-},{}],143:[function(require,module,exports){
+},{}],146:[function(require,module,exports){
 /*!
  * range-parser
  * Copyright(c) 2012-2014 TJ Holowaychuk
@@ -47397,7 +48483,7 @@ function rangeParser(size, str) {
   return valid ? arr : -1;
 }
 
-},{}],144:[function(require,module,exports){
+},{}],147:[function(require,module,exports){
 var lodash = require("lodash"),
     Fn = {
       assign: lodash.assign,
@@ -47501,7 +48587,7 @@ Fn.sleep = function( ms ) {
 
 module.exports = Fn;
 
-},{"lodash":102}],145:[function(require,module,exports){
+},{"lodash":105}],148:[function(require,module,exports){
 var events = require('events'),
     spawn = require("child_process").spawn,
     util = require("util"),
@@ -47852,7 +48938,7 @@ RaspiCam.prototype.set = function(opt, value){
 
 module.exports = RaspiCam;
 
-},{"../lib/fn.js":144,"../options":146,"child_process":undefined,"events":undefined,"fs":undefined,"lodash":102,"util":undefined}],146:[function(require,module,exports){
+},{"../lib/fn.js":147,"../options":149,"child_process":undefined,"events":undefined,"fs":undefined,"lodash":105,"util":undefined}],149:[function(require,module,exports){
 module.exports={
 	"parameters": {
 		"w": "width",
@@ -47890,7 +48976,7 @@ module.exports={
 		"vf": "vflip"
 	}	
 }
-},{}],147:[function(require,module,exports){
+},{}],150:[function(require,module,exports){
 /*!
  * send
  * Copyright(c) 2012 TJ Holowaychuk
@@ -48712,13 +49798,13 @@ function normalizeList(val, name) {
   return list
 }
 
-},{"debug":14,"depd":16,"destroy":21,"escape-html":23,"etag":24,"events":undefined,"fresh":51,"fs":undefined,"http-errors":148,"mime":109,"ms":112,"on-finished":125,"path":undefined,"range-parser":143,"statuses":150,"stream":undefined}],148:[function(require,module,exports){
-arguments[4][43][0].apply(exports,arguments)
-},{"dup":43,"inherits":100,"statuses":150}],149:[function(require,module,exports){
-arguments[4][46][0].apply(exports,arguments)
-},{"dup":46}],150:[function(require,module,exports){
+},{"debug":14,"depd":16,"destroy":21,"escape-html":24,"etag":25,"events":undefined,"fresh":54,"fs":undefined,"http-errors":151,"mime":112,"ms":115,"on-finished":128,"path":undefined,"range-parser":146,"statuses":153,"stream":undefined}],151:[function(require,module,exports){
+arguments[4][44][0].apply(exports,arguments)
+},{"dup":44,"inherits":103,"statuses":153}],152:[function(require,module,exports){
 arguments[4][47][0].apply(exports,arguments)
-},{"./codes.json":149,"dup":47}],151:[function(require,module,exports){
+},{"dup":47}],153:[function(require,module,exports){
+arguments[4][48][0].apply(exports,arguments)
+},{"./codes.json":152,"dup":48}],154:[function(require,module,exports){
 /*!
  * type-is
  * Copyright(c) 2014 Jonathan Ong
@@ -48982,7 +50068,7 @@ function tryNormalizeType (value) {
   }
 }
 
-},{"media-typer":103,"mime-types":108}],152:[function(require,module,exports){
+},{"media-typer":106,"mime-types":111}],155:[function(require,module,exports){
 /*!
  * unpipe
  * Copyright(c) 2015 Douglas Christopher Wilson
@@ -49053,7 +50139,7 @@ function unpipe(stream) {
   }
 }
 
-},{}],153:[function(require,module,exports){
+},{}],156:[function(require,module,exports){
 /**
  * Merge object b with object a.
  *
@@ -49078,7 +50164,7 @@ exports = module.exports = function(a, b){
   return a;
 };
 
-},{}],154:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
 /*!
  * vary
  * Copyright(c) 2014-2015 Douglas Christopher Wilson
@@ -49197,7 +50283,401 @@ function vary(res, field) {
   }
 }
 
-},{}],155:[function(require,module,exports){
+},{}],158:[function(require,module,exports){
+/*jshint strict:true node:true es5:true onevar:true laxcomma:true laxbreak:true*/
+(function () {
+  "use strict";
+
+  // "FIFO" isn't easy to convert to camelCase and back reliably
+  var isFnodeTypes = [
+      "isFile", "isDirectory",  "isSymbolicLink", "isBlockDevice",  "isCharacterDevice", "isFIFO", "isSocket"
+    ],
+    fnodeTypes = [
+      "file",   "directory",    "symbolicLink",   "blockDevice",    "characterDevice",    "FIFO",   "socket"
+    ],
+    fnodeTypesPlural = [
+      "files",  "directories",  "symbolicLinks",  "blockDevices",   "characterDevices",   "FIFOs",  "sockets"
+    ];
+
+
+  // 
+  function createNodeGroups() {
+    var nodeGroups = {};
+    fnodeTypesPlural.concat("nodes", "errors").forEach(function (fnodeTypePlural) {
+      nodeGroups[fnodeTypePlural] = [];
+    });
+    return nodeGroups;
+  }
+
+
+  // Determine each file node's type
+  // 
+  function sortFnodesByType(stat, fnodes) {
+    var i, isType;
+
+    for (i = 0; i < isFnodeTypes.length; i += 1) {
+      isType = isFnodeTypes[i];
+      if (stat[isType]()) {
+        stat.type = fnodeTypes[i];
+        fnodes[fnodeTypesPlural[i]].push(stat);
+        return;
+      }
+    }
+  }
+
+
+  // Get the current number of listeners (which may change)
+  // Emit events to each listener
+  // Wait for all listeners to `next()` before continueing
+  // (in theory this may avoid disk thrashing)
+  function emitSingleEvents(emitter, path, stats, next, self) {
+    var num = 1 + emitter.listeners(stats.type).length + emitter.listeners("node").length;
+
+    function nextWhenReady() {
+      num -= 1;
+      if (0 === num) { next.call(self); }
+    }
+
+    emitter.emit(stats.type, path, stats, nextWhenReady);
+    emitter.emit("node", path, stats, nextWhenReady);
+    nextWhenReady();
+  }
+
+
+  // Since the risk for disk thrashing among anything
+  // other than files is relatively low, all types are
+  // emitted at once, but all must complete before advancing
+  function emitPluralEvents(emitter, path, nodes, next, self) {
+    var num = 1;
+
+    function nextWhenReady() {
+      num -= 1;
+      if (0 === num) { next.call(self); }
+    }
+
+    fnodeTypesPlural.concat(["nodes", "errors"]).forEach(function (fnodeType) {
+      if (0 === nodes[fnodeType].length) { return; }
+      num += emitter.listeners(fnodeType).length;
+      emitter.emit(fnodeType, path, nodes[fnodeType], nextWhenReady);
+    });
+    nextWhenReady();
+  }
+
+  module.exports = {
+    emitNodeType: emitSingleEvents,
+    emitNodeTypeGroups: emitPluralEvents,
+    isFnodeTypes: isFnodeTypes,
+    fnodeTypes: fnodeTypes,
+    fnodeTypesPlural: fnodeTypesPlural,
+    sortFnodesByType: sortFnodesByType,
+    createNodeGroups: createNodeGroups
+  };
+}());
+
+},{}],159:[function(require,module,exports){
+// Adapted from work by jorge@jorgechamorro.com on 2010-11-25
+(function () {
+  "use strict";
+
+  function noop() {}
+
+  var fs = require('fs')
+    , forEachAsync = require('foreachasync').forEachAsync
+    , EventEmitter = require('events').EventEmitter
+    , TypeEmitter = require('./node-type-emitter')
+    , util = require('util')
+    , path = require('path')
+    ;
+
+  function appendToDirs(stat) {
+    /*jshint validthis:true*/
+    this.push(stat.name);
+  }
+
+  function wFilesHandlerWrapper(items) {
+    /*jshint validthis:true*/
+    this._wFilesHandler(noop, items);
+  }
+
+  function Walker(pathname, options, sync) {
+    EventEmitter.call(this);
+
+    var me = this
+      ;
+
+    options = options || {};
+    me._wStat = options.followLinks && 'stat' || 'lstat';
+    me._wStatSync = me._wStat + 'Sync';
+    me._wsync = sync;
+    me._wq = [];
+    me._wqueue = [me._wq];
+    me._wcurpath = undefined;
+    me._wfilters = options.filters || [];
+    me._wfirstrun = true;
+    me._wcurpath = pathname;
+
+    if (me._wsync) {
+      //console.log('_walkSync');
+      me._wWalk = me._wWalkSync;
+    } else {
+      //console.log('_walkASync');
+      me._wWalk = me._wWalkAsync;
+    }
+
+    options.listeners = options.listeners || {};
+    Object.keys(options.listeners).forEach(function (event) {
+      var callbacks = options.listeners[event]
+        ;
+
+      if ('function' === typeof callbacks) {
+        callbacks = [callbacks];
+      }
+
+      callbacks.forEach(function (callback) {
+        me.on(event, callback);
+      });
+    });
+
+    me._wWalk();
+  }
+
+  // Inherits must come before prototype additions
+  util.inherits(Walker, EventEmitter);
+
+  Walker.prototype._wLstatHandler = function (err, stat) {
+    var me = this
+      ;
+
+    stat = stat || {};
+    stat.name = me._wcurfile;
+
+    if (err) {
+      stat.error = err;
+      //me.emit('error', curpath, stat);
+      // TODO v3.0 (don't noop the next if there are listeners)
+      me.emit('nodeError', me._wcurpath, stat, noop);
+      me._wfnodegroups.errors.push(stat);
+      me._wCurFileCallback();
+    } else {
+      TypeEmitter.sortFnodesByType(stat, me._wfnodegroups);
+      // NOTE: wCurFileCallback doesn't need thisness, so this is okay
+      TypeEmitter.emitNodeType(me, me._wcurpath, stat, me._wCurFileCallback, me);
+    }
+  };
+  Walker.prototype._wFilesHandler = function (cont, file) {
+    var statPath
+      , me = this
+      ;
+
+
+    me._wcurfile = file;
+    me._wCurFileCallback = cont;
+    me.emit('name', me._wcurpath, file, noop);
+
+    statPath = me._wcurpath + path.sep + file;
+
+    if (!me._wsync) {
+      // TODO how to remove this anony?
+      fs[me._wStat](statPath, function (err, stat) {
+        me._wLstatHandler(err, stat);
+      });
+      return;
+    }
+
+    try {
+      me._wLstatHandler(null, fs[me._wStatSync](statPath));
+    } catch(e) {
+      me._wLstatHandler(e);
+    }
+  };
+  Walker.prototype._wOnEmitDone = function () {
+    var me = this
+      , dirs = []
+      ;
+
+    me._wfnodegroups.directories.forEach(appendToDirs, dirs);
+    dirs.forEach(me._wJoinPath, me);
+    me._wqueue.push(me._wq = dirs);
+    me._wNext();
+  };
+  Walker.prototype._wPostFilesHandler = function () {
+    var me = this
+      ;
+
+    if (me._wfnodegroups.errors.length) {
+      // TODO v3.0 (don't noop the next)
+      // .errors is an array of stats with { name: name, error: error }
+      me.emit('errors', me._wcurpath, me._wfnodegroups.errors, noop);
+    }
+    // XXX emitNodeTypes still needs refactor
+    TypeEmitter.emitNodeTypeGroups(me, me._wcurpath, me._wfnodegroups, me._wOnEmitDone, me);
+  };
+  Walker.prototype._wReadFiles = function () {
+    var me = this
+      ;
+
+    if (!me._wcurfiles || 0 === me._wcurfiles.length) {
+      return me._wNext();
+    }
+
+    // TODO could allow user to selectively stat
+    // and don't stat if there are no stat listeners
+    me.emit('names', me._wcurpath, me._wcurfiles, noop);
+
+    if (me._wsync) {
+      me._wcurfiles.forEach(wFilesHandlerWrapper, me);
+      me._wPostFilesHandler();
+    } else {
+      forEachAsync(me._wcurfiles, me._wFilesHandler, me).then(me._wPostFilesHandler);
+    }
+  };
+  Walker.prototype._wReaddirHandler = function (err, files) {
+    var fnodeGroups = TypeEmitter.createNodeGroups()
+      , me = this
+      , parent
+      , child
+      ;
+
+    me._wfnodegroups = fnodeGroups;
+    me._wcurfiles = files;
+
+    // no error, great
+    if (!err) {
+      me._wReadFiles();
+      return;
+    }
+
+    // TODO path.sep
+    me._wcurpath = me._wcurpath.replace(/\/$/, '');
+
+    // error? not first run? => directory error
+    if (!me._wfirstrun) {
+      // TODO v3.0 (don't noop the next if there are listeners)
+      me.emit('directoryError', me._wcurpath, { error: err }, noop);
+      // TODO v3.0
+      //me.emit('directoryError', me._wcurpath.replace(/^(.*)\/.*$/, '$1'), { name: me._wcurpath.replace(/^.*\/(.*)/, '$1'), error: err }, noop);
+      me._wReadFiles();
+      return;
+    }
+
+    // error? first run? => maybe a file, maybe a true error
+    me._wfirstrun = false;
+
+    // readdir failed (might be a file), try a stat on the parent
+    parent = me._wcurpath.replace(/^(.*)\/.*$/, '$1');
+    fs[me._wStat](parent, function (e, stat) {
+
+      if (stat) {
+        // success
+        // now try stat on this as a child of the parent directory
+        child = me._wcurpath.replace(/^.*\/(.*)$/, '$1');
+        me._wcurfiles = [child];
+        me._wcurpath = parent;
+      } else {
+        // TODO v3.0
+        //me.emit('directoryError', me._wcurpath.replace(/^(.*)\/.*$/, '$1'), { name: me._wcurpath.replace(/^.*\/(.*)/, '$1'), error: err }, noop);
+        // TODO v3.0 (don't noop the next)
+        // the original readdir error, not the parent stat error
+        me.emit('nodeError', me._wcurpath, { error: err }, noop);
+      }
+
+      me._wReadFiles();
+    });
+  };
+  Walker.prototype._wFilter = function () {
+    var me = this
+      , exclude
+      ;
+
+    // Stop directories that contain filter keywords
+    // from continuing through the walk process
+    exclude = me._wfilters.some(function (filter) {
+      if (me._wcurpath.match(filter)) {
+        return true;
+      }
+    });
+
+    return exclude;
+  };
+  Walker.prototype._wWalkSync = function () {
+    //console.log('walkSync');
+    var err
+      , files
+      , me = this
+      ;
+
+    try {
+      files = fs.readdirSync(me._wcurpath);
+    } catch(e) {
+      err = e;
+    }
+
+    me._wReaddirHandler(err, files);
+  };
+  Walker.prototype._wWalkAsync = function () {
+    //console.log('walkAsync');
+    var me = this
+      ;
+
+    // TODO how to remove this anony?
+    fs.readdir(me._wcurpath, function (err, files) {
+      me._wReaddirHandler(err, files);
+    });
+  };
+  Walker.prototype._wNext = function () {
+    var me = this
+      ;
+
+    if (me._paused) {
+      return;
+    }
+    if (me._wq.length) {
+      me._wcurpath = me._wq.pop();
+      while (me._wq.length && me._wFilter()) {
+        me._wcurpath = me._wq.pop();
+      }
+      if (me._wcurpath && !me._wFilter()) {
+        me._wWalk();
+      } else {
+        me._wNext();
+      }
+      return;
+    }
+    me._wqueue.length -= 1;
+    if (me._wqueue.length) {
+      me._wq = me._wqueue[me._wqueue.length - 1];
+      return me._wNext();
+    }
+
+    // To not break compatibility
+    //process.nextTick(function () {
+      me.emit('end');
+    //});
+  };
+  Walker.prototype._wJoinPath = function (v, i, o) {
+    var me = this
+      ;
+
+    o[i] = [me._wcurpath, path.sep, v].join('');
+  };
+  Walker.prototype.pause = function () {
+    this._paused = true;
+  };
+  Walker.prototype.resume = function () {
+    this._paused = false;
+    this._wNext();
+  };
+
+  exports.walk = function (path, opts) {
+    return new Walker(path, opts, false);
+  };
+
+  exports.walkSync = function (path, opts) {
+    return new Walker(path, opts, true);
+  };
+}());
+
+},{"./node-type-emitter":158,"events":undefined,"foreachasync":52,"fs":undefined,"path":undefined,"util":undefined}],160:[function(require,module,exports){
 // Returns a wrapper function that returns a wrapped callback
 // The wrapper function should do some stuff, and return a
 // presumably different callback function.
@@ -49232,7 +50712,7 @@ function wrappy (fn, cb) {
   }
 }
 
-},{}],156:[function(require,module,exports){
+},{}],161:[function(require,module,exports){
 (function (__dirname){
 'use strict';
 
@@ -49244,83 +50724,279 @@ var _expressHandlebars = require('express-handlebars');
 
 var _expressHandlebars2 = _interopRequireDefault(_expressHandlebars);
 
+var _handlebars = require('handlebars');
+
+var _handlebars2 = _interopRequireDefault(_handlebars);
+
 var _path = require('path');
 
 var _path2 = _interopRequireDefault(_path);
 
-var _camera = require('./camera');
+var _fs = require('fs');
+
+var _fs2 = _interopRequireDefault(_fs);
+
+var _camera = require('./modules/camera');
 
 var _camera2 = _interopRequireDefault(_camera);
+
+var _config = require('./modules/config');
+
+var _config2 = _interopRequireDefault(_config);
+
+var _images = require('./modules/images');
+
+var _images2 = _interopRequireDefault(_images);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var app = (0, _express2.default)();
-var port = 80;
+var port = 8000;
 
 var html = _expressHandlebars2.default.create({ extname: '.html' });
 
-app.use(_express2.default.static(_path2.default.join(__dirname, 'screenshot')));
-app.use(_express2.default.static(_path2.default.join(__dirname, 'assets')));
+app.use(_express2.default.static(__dirname));
 app.set('views', _path2.default.join(__dirname, '/views'));
 app.engine('html', html.engine);
 app.set('view engine', 'html');
 
+function make(req, res) {
+	var options = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+
+	var time = _config2.default.instance.env === 'dev' ? 2000 : 0;
+	setTimeout(function () {
+		new _camera2.default(options).then(function (img) {
+			res.set('Content-Type', 'application/json');
+			res.send({
+				status: 'sucess',
+				img: img
+			});
+		});
+	}, time);
+}
+
+app.get('/saturation', function (req, res) {
+	make(req, res, { saturation: -100 });
+});
+
+app.get('/sharpness', function (req, res) {
+	make(req, res, { sharpness: -100 });
+});
+
+app.get('/brightness', function (req, res) {
+	make(req, res, { brightness: 50 });
+});
+
+app.get('/reload', function (req, res) {
+	make(req, res);
+});
+
 app.get('/', function (req, res) {
-	new _camera2.default(function () {
-		res.render('index');
+	_images2.default.instance.read().then(function (images) {
+		var index = __dirname + '/views/index.html';
+		var html = _fs2.default.readFileSync(index, 'utf8');
+
+		var template = _handlebars2.default.compile(html, { noEscape: true });
+		var tmp = template({ images: images });
+
+		res.set('Content-Type', 'text/html');
+		return res.send(tmp);
 	});
 });
 
 app.listen(port, function () {
-	console.log('Example app listening on port port!');
+	console.log('Example app listening on port ' + port + '!');
 });
 
 }).call(this,"/home/pi/camera/src/server")
-},{"./camera":157,"express":31,"express-handlebars":25,"path":undefined}],157:[function(require,module,exports){
+},{"./modules/camera":162,"./modules/config":163,"./modules/images":164,"express":32,"express-handlebars":26,"fs":undefined,"handlebars":90,"path":undefined}],162:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _extend = require('extend');
+
+var _extend2 = _interopRequireDefault(_extend);
+
+var _raspicam = require('raspicam');
+
+var _raspicam2 = _interopRequireDefault(_raspicam);
+
+var _config = require('./config');
+
+var _config2 = _interopRequireDefault(_config);
+
+var _es6Promise = require('es6-promise');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Camera = function Camera() {
+    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+
+    _classCallCheck(this, Camera);
+
+    var p = new _es6Promise.Promise(function (resolve, reject) {
+        var saveTo = "./src/server/screenshot/";
+        var webPath = "/screenshot/";
+        var name = 'cam-' + new Date().getTime() + '.jpg';
+
+        var defaultOptions = {
+            mode: "photo",
+            output: saveTo + name,
+            encoding: "jpg",
+            timeout: 0, // take the picture immediately
+            w: 320,
+            h: 240,
+            q: 60
+        };
+
+        defaultOptions = (0, _extend2.default)(defaultOptions, options);
+
+        if (_config2.default.instance.env === 'dev') {
+            resolve(webPath + name);
+        } else {
+            var piCam = new _raspicam2.default(defaultOptions);
+
+            piCam.on("started", function (err, timestamp) {
+                console.log("photo started at " + timestamp);
+            });
+
+            piCam.on("read", function (err, timestamp, filename) {
+                console.log("photo image captured with filename: " + filename);
+                resolve(webPath + name);
+                piCam.stop();
+            });
+
+            piCam.on("exit", function (timestamp) {
+                console.log("photo child process has exited at " + timestamp);
+            });
+
+            piCam.start();
+        }
+    });
+
+    return p;
+};
+
+exports.default = Camera;
+
+},{"./config":163,"es6-promise":23,"extend":49,"raspicam":148}],163:[function(require,module,exports){
 "use strict";
 
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _raspicam = require("raspicam");
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _raspicam2 = _interopRequireDefault(_raspicam);
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var singleton = Symbol();
+var singletonEnforcer = Symbol();
+
+var Config = function () {
+    function Config(enforcer) {
+        _classCallCheck(this, Config);
+
+        if (enforcer != singletonEnforcer) throw "Cannot construct singleton";
+        this._init();
+    }
+
+    _createClass(Config, [{
+        key: "_init",
+        value: function _init() {
+            this._env = process.env.NODE_ENV || 'prod';
+        }
+    }, {
+        key: "env",
+        get: function get() {
+            return this._env;
+        }
+    }], [{
+        key: "instance",
+        get: function get() {
+            if (!this[singleton]) {
+                this[singleton] = new Config(singletonEnforcer);
+            }
+            return this[singleton];
+        }
+    }]);
+
+    return Config;
+}();
+
+exports.default = Config;
+
+},{}],164:[function(require,module,exports){
+(function (__dirname){
+"use strict";
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _walk = require("walk");
+
+var _walk2 = _interopRequireDefault(_walk);
+
+var _es6Promise = require("es6-promise");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-var Camera = function Camera(cb) {
-    _classCallCheck(this, Camera);
+var singleton = Symbol();
+var singletonEnforcer = Symbol();
 
-    var piCam = new _raspicam2.default({
-        mode: "photo",
-        output: "./src/server/screenshot/cam.jpg",
-        encoding: "jpg",
-        timeout: 0, // take the picture immediately
-        w: 320,
-        h: 240,
-        q: 60
-    });
+var Images = function () {
+    function Images(enforcer) {
+        _classCallCheck(this, Images);
 
-    piCam.on("started", function (err, timestamp) {
-        console.log("photo started at " + timestamp);
-    });
+        if (enforcer != singletonEnforcer) throw "Cannot construct singleton";
+    }
 
-    piCam.on("read", function (err, timestamp, filename) {
-        console.log("photo image captured with filename: " + filename);
-        cb && cb();
-        piCam.stop();
-    });
+    _createClass(Images, [{
+        key: "read",
+        value: function read() {
+            var p = new _es6Promise.Promise(function (resolve, reject) {
+                var walker = _walk2.default.walk(__dirname + '/../screenshot', { followLinks: false });
+                var files = [];
 
-    piCam.on("exit", function (timestamp) {
-        console.log("photo child process has exited at " + timestamp);
-    });
+                walker.on('file', function (root, stat, next) {
+                    // Add this file to the list of files
+                    files.push({
+                        path: '/screenshot/' + stat.name
+                    });
+                    next();
+                });
 
-    piCam.start();
-};
+                walker.on('end', function () {
+                    resolve(files);
+                });
+            });
 
-exports.default = Camera;
+            return p;
+        }
+    }], [{
+        key: "instance",
+        get: function get() {
+            if (!this[singleton]) {
+                this[singleton] = new Images(singletonEnforcer);
+            }
+            return this[singleton];
+        }
+    }]);
 
-},{"raspicam":145}]},{},[156]);
+    return Images;
+}();
+
+exports.default = Images;
+
+}).call(this,"/home/pi/camera/src/server/modules")
+},{"es6-promise":23,"walk":159}]},{},[161]);

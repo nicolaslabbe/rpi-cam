@@ -2,6 +2,7 @@ $(document).ready(function(){
 	// $('.materialboxed').materialbox();
 	
 	function newImg(type) {
+		var imagesHolder = document.querySelector('[data-image="true"]')
 		$('.fixed-action-btn').closeFAB();
 		actionBtn.blur()
 		actionBtn.classList.remove('done')
@@ -10,10 +11,26 @@ $(document).ready(function(){
 		$.ajax({
 			url: '/' + type,
 			success: function (e) {
-				cardImg.src = e.img
+				// cardImg.src = e.img
+				console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+				console.log('e', e)
 				actionBtn.classList.remove('load')
 				actionBtn.classList.add('done')
 				loadBtn.classList.add('hide')
+				var source = document.querySelector('#image-template').innerHTML
+				var template = Handlebars.compile(source);
+				var context = {path: "/screenshot/cam-1471250849612.jpg"};
+				var html    = template(e);
+
+				var span = document.createElement('span')
+				span.innerHTML = html
+				
+				var firstChild = imagesHolder.firstElementChild
+				if(typeof firstChild !== 'undefined' && firstChild !== null) {
+					imagesHolder.insertBefore(span, firstChild)
+				}else {
+					imagesHolder.appendChild(span)
+				}
 			}
 		});
 	}

@@ -6,6 +6,9 @@ import fs from 'fs'
 import Camera from './modules/camera'
 import Config from './modules/config'
 import Images from './modules/images'
+import JsonHelper from './helpers'
+console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+console.log('JsonHelper', JsonHelper)
 
 var app = express()
 var port = 8000
@@ -15,6 +18,7 @@ var html = exphbs.create({extname: '.html'})
 app.use(express.static(__dirname))
 app.set('views', path.join(__dirname, '/views'))
 app.engine('html', html.engine)
+Handlebars.registerHelper('toJSON', jsonHelper.instance.helper);
 app.set('view engine', 'html')
 
 function make(req, res, options = {}) {
@@ -25,9 +29,13 @@ function make(req, res, options = {}) {
 			res.set('Content-Type', 'application/json')
 			res.send({
 				status: 'sucess',
-				img: img
+				images: [{
+					path: img
+				}]
 			})
-		})
+		}).catch(function(e) {
+	      console.error(e)
+	    })
     }, time)
 }
 
@@ -56,7 +64,8 @@ app.get('/', (req, res) => {
 			var template = Handlebars.compile(html, {noEscape: true})
 			var tmp = template({images: images})
 			
-			res.set('Content-Type', 'text/html')
+			// res.set('Content-Type', 'text/html')
+			// return res.send(html);
 			return res.send(tmp);
 		})
 });
