@@ -1,6 +1,8 @@
+dist/
 node_modules/
 *.AppleDouble
 src/server/screenshot/
 *.sublime-project
 *.sublime-workspace
 src/server/app.es5.js
+npm-debug.log*

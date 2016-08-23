@@ -11,8 +11,8 @@ var port = 8000
 
 var html = exphbs.create({extname: '.html'})
 
-app.use(express.static(__dirname))
-app.set('views', path.join(__dirname, '/views'))
+app.use(express.static(process.cwd() + '/dist'))
+app.set('views', path.join(process.cwd(), '/dist/views'))
 app.engine('html', html.engine)
 app.set('view engine', 'html')
 
@@ -53,7 +53,7 @@ app.get('/reload', (req, res) => {
 	make(req, res)
 });
 
-var index = __dirname + '/views/index.html'
+var index = process.cwd() + '/dist/views/index.html'
 var html = fs.readFileSync(index, 'utf8')
 
 var template = Handlebars.compile(html, {noEscape: true})

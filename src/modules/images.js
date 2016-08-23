@@ -24,7 +24,7 @@ class Images {
 
     read() {
         var p = new Promise((resolve, reject) => {
-            var walker  = walk.walk(__dirname + '/../screenshot', { followLinks: false });
+            var walker  = walk.walk(process.cwd() + '/dist/screenshot', { followLinks: false });
             var files = []
 
             walker.on('file', (root, stat, next) => {

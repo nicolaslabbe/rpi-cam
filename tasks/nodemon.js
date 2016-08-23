@@ -2,19 +2,19 @@ var nodemon = require('nodemon');
 var watch = require('watch');
 var fs = require('fs');
 
-// NODE_ENV=development nodemon --exec npm run babel-app src/server/app.js --kill-others
+// NODE_ENV=development nodemon --exec npm run babel-app src/app.js --kill-others
 // ROOT=/path/to/my/abesite node src/tasks/nodemon.js
 
 nodemon({
-  script: __dirname + '/../../src/server/app.js',
+  script: __dirname + '/../src/app.js',
   options: {
-    exec: __dirname + '/../../node_modules/.bin/babel-node --presets es2015'
+    exec: __dirname + '/../node_modules/.bin/babel-node --presets es2015'
   },
   nodeArgs: ['--debug'],
   restartable: 'rs',
   colours: true,
   execMap: {
-    js: __dirname + '/../../node_modules/.bin/babel-node --presets es2015'
+    js: __dirname + '/../node_modules/.bin/babel-node --presets es2015'
   },
   env: {
     'NODE_ENV': process.env.NODE_ENV || 'prod'
@@ -23,7 +23,7 @@ nodemon({
     "docs/*"
   ],
   watch: [
-	'src/server/*'
+	'src/*'
   ],
   stdin: true,
   runOnChangeOnly: false,

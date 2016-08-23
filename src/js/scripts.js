@@ -1,3 +1,5 @@
+import Handlebars from 'handlebars'
+
 $(document).ready(function(){
 	// $('.materialboxed').materialbox();
 	

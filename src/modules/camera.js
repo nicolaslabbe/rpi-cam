@@ -11,7 +11,7 @@ export default class Camera {
             var webPath = "/screenshot/"
             // var name = 'cam-' + new Date().getTime() + '.jpg'
             var name = 'cam-' + new Date().getTime() + '.jpg'
-            var saveTo = process.cwd() + "/src/server/screenshot/" + name
+            var saveTo = process.cwd() + "/dist/screenshot/" + name
             // console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
             // console.log('create file', __dirname + webPath + name)
 
@@ -35,7 +35,27 @@ export default class Camera {
             // defaultOptions = extend(defaultOptions, options)
 
             if (Config.instance.env === 'dev') {
-                resolve(webPath + 'cam.jpg');
+                var gd = require('node-gd');
+                 
+                gd.createTrueColor(200,200, function(error, img) {
+                  if (error) throw error;
+                 
+                  var points = [
+                    { x: 100, y: 20 },
+                    { x: 170, y: 60 },
+                    { x: 170, y: 140},
+                    { x: 100, y: 180},
+                    { x: 30, y: 140},
+                    { x: 30, y: 60},
+                    { x: 100, y: 20},
+                  ];
+                 
+                  img.setThickness(4);
+                  img.polygon(points, 0xff0000);
+                  img.bmp(saveTo, 0);
+                  img.destroy();
+                });
+                resolve(webPath + name);
             }else {
                 /*
                 --sharpness -100 / 100
@@ -62,7 +82,7 @@ export default class Camera {
                 --timeout
                 // https://www.raspberrypi.org/wp-content/uploads/2013/07/RaspiCam-Documentation.pdf
                 */
-                var raspistill = `/opt/vc/bin/raspistill -o ${saveTo}`
+                var raspistill = `/opt/vc/bin/raspistill -o ${saveTo} --width=100 --height=100`
                 console.log('cmd : ' + raspistill)
                 var cmd = exec(raspistill,
                     function (err, out, code) {
