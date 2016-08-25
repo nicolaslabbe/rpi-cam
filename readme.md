@@ -10,5 +10,6 @@ npm install
 dev
 
 ```shell
+npm install -g node-gd
 NODE_ENV=dev npm run dev
 ```
