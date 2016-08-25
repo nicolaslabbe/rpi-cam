@@ -60,6 +60,8 @@ var template = Handlebars.compile(html, {noEscape: true})
 app.get('/', (req, res) => {
 	Images.instance.read()
 		.then((images) => {
+			console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+			console.log('images', images)
 			var tmp = template({images: images})
 			res.set('Content-Type', 'text/html')
 			return res.send(tmp);

@@ -15,8 +15,9 @@
     "build:back": "npm run mkdir && browserify src/app.js -o dist/app.es5.js --full-paths=false --node -t [ babelify --presets [ es2015 ] ]",
     "watch": "watch \"npm run css\" ./src/css | watch \"npm run views\" ./src/views | watch \"npm run js\" ./src/js",
     "dev": "npm run build:front && run-p -l watch nodemon",
-    "start": "npm run build:front && npm run build:back && node ./tasks/pm2.js",
+    "start": "npm run build:front && npm run build:back && npm run prod",
     "nodemon": "node ./tasks/nodemon.js",
+    "prod": "pm2 delete camera",
     "stop": "pm2 delete camera",
     "list": "pm2 list",
     "logs": "pm2 logs camera"

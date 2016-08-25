@@ -35,27 +35,7 @@ export default class Camera {
             // defaultOptions = extend(defaultOptions, options)
 
             if (Config.instance.env === 'dev') {
-                var gd = require('node-gd');
-                 
-                gd.createTrueColor(200,200, function(error, img) {
-                  if (error) throw error;
-                 
-                  var points = [
-                    { x: 100, y: 20 },
-                    { x: 170, y: 60 },
-                    { x: 170, y: 140},
-                    { x: 100, y: 180},
-                    { x: 30, y: 140},
-                    { x: 30, y: 60},
-                    { x: 100, y: 20},
-                  ];
-                 
-                  img.setThickness(4);
-                  img.polygon(points, 0xff0000);
-                  img.bmp(saveTo, 0);
-                  img.destroy();
-                });
-                resolve(webPath + name);
+                resolve('https://i.ytimg.com/vi/cNycdfFEgBc/maxresdefault.jpg');
             }else {
                 /*
                 --sharpness -100 / 100

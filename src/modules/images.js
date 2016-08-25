@@ -3,6 +3,7 @@ let singletonEnforcer = Symbol()
 
 import walk from "walk"
 import {Promise} from 'es6-promise'
+import {Config} from './'
 
 class Images {
 
@@ -24,28 +25,40 @@ class Images {
 
     read() {
         var p = new Promise((resolve, reject) => {
-            var walker  = walk.walk(process.cwd() + '/dist/screenshot', { followLinks: false });
-            var files = []
+            if (Config.instance.env === 'dev') {
+                resolve(
+                    [
+                        {path:"https://i.ytimg.com/vi/cNycdfFEgBc/maxresdefault.jpg"},
+                        {path:"https://i.ytimg.com/vi/cNycdfFEgBc/maxresdefault.jpg"},
+                        {path:"https://i.ytimg.com/vi/cNycdfFEgBc/maxresdefault.jpg"},
+                        {path:"https://i.ytimg.com/vi/cNycdfFEgBc/maxresdefault.jpg"}
+                    ]
+                )
+                resolve();
+            }else {
+                var walker  = walk.walk(process.cwd() + '/dist/screenshot', { followLinks: false });
+                var files = []
 
-            walker.on('file', (root, stat, next) => {
-                // Add this file to the list of files
-                var add = false
-                Array.prototype.forEach.call(this._extensions, (extension) => {
-                    if (extension.test(stat.name)) {
-                        add = true
+                walker.on('file', (root, stat, next) => {
+                    // Add this file to the list of files
+                    var add = false
+                    Array.prototype.forEach.call(this._extensions, (extension) => {
+                        if (extension.test(stat.name)) {
+                            add = true
+                        }
+                    })
+                    if (add) {
+                        files.push({
+                            path: '/screenshot/' + stat.name
+                        }); 
                     }
-                })
-                if (add) {
-                    files.push({
-                        path: '/screenshot/' + stat.name
-                    }); 
-                }
-                next();
-            });
+                    next();
+                });
 
-            walker.on('end', function() {
-                resolve(files);
-            });
+                walker.on('end', function() {
+                    resolve(files);
+                });
+            }
         })
 
         return p
