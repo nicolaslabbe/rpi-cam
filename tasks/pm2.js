@@ -27,9 +27,9 @@ pm2.connect(function(err) {
 					'PORT': processPort
 				}
 			};
-			console.log('[ pm2 ] start', path.join(__dirname, '../server/app.es5.js'));
+			console.log('[ pm2 ] start', path.join(__dirname, '../dist/app.es5.js'));
 			pm2.start(
-				path.join(__dirname, '../server/app.es5.js'),
+				path.join(__dirname, '../dist/app.es5.js'),
 				options,
 				function(err, proc) {
 					if (err instanceof Error) throw err;
