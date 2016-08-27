@@ -23,12 +23,15 @@ pm2.connect(function(err) {
 			var options = {
 				'name':pm2Name,
 				'nodeArgs':['--harmony'],
+				'watch':"./dist/app.es5.js",
 				env: {
 					'PORT': processPort
+					,"args": ["--ignore-watch=\.git|node_modules|src"]
 				}
 			};
 			console.log('[ pm2 ] start', path.join(__dirname, '../dist/app.es5.js'));
-			pm2.start(
+			console.log('[ pm2 ] options', options);
+			start(
 				path.join(__dirname, '../dist/app.es5.js'),
 				options,
 				function(err, proc) {

@@ -3,7 +3,7 @@ import exphbs from 'express-handlebars'
 import Handlebars from 'handlebars'
 import path from 'path'
 import fs from 'fs'
-import {Camera, Config, Images} from './modules'
+import {Camera, Deploy, Config, Images} from './modules'
 import {helperJson, helperRaw} from './helpers'
 
 var app = express()
@@ -31,11 +31,22 @@ function make(req, res, options = {}) {
 					path: img
 				}]
 			})
-		}).catch(function(e) {
-	      console.error(e)
-	    })
+		})
+		.catch((e) => {
+			return res.send(e.toString());
+		})
     }, time)
 }
+
+app.get('/deploy', (req, res) => {
+	Deploy.instance.run()
+		.then(() => {
+			return res.send('done');
+		})
+		.catch((e) => {
+			return res.send(e.toString());
+		})
+});
 
 app.get('/saturation', (req, res) => {
 	make(req, res, {saturation: -100})
@@ -65,6 +76,9 @@ app.get('/', (req, res) => {
 			var tmp = template({images: images})
 			res.set('Content-Type', 'text/html')
 			return res.send(tmp);
+		})
+		.catch((e) => {
+			return res.send(e.toString());
 		})
 });
 
