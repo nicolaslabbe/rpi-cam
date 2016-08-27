@@ -41,10 +41,18 @@ function make(req, res, options = {}) {
 app.get('/deploy', (req, res) => {
 	Deploy.instance.run()
 		.then(() => {
-			return res.send('done');
+			res.set('Content-Type', 'application/json')
+			res.send({
+				status: 'sucess',
+				messages: 'done'
+			})
 		})
 		.catch((e) => {
-			return res.send(e.toString());
+			res.set('Content-Type', 'application/json')
+			res.send({
+				status: 'error',
+				messages: e.toString()
+			})
 		})
 });
 
