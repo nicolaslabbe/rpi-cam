@@ -12,7 +12,7 @@
     "rm:front": "npm run mkdir && rm -rf ./dist/views && rm -rf ./dist/css && rm -rf ./dist/fonts && rm -rf ./dist/js",
     "move:front": "npm run mkdir && npm run views && npm run css && cp -r ./src/fonts/ ./dist/fonts/ && cp ./node_modules/materialize-css/dist/css/materialize.min.css ./dist/css && cp ./node_modules/materialize-css/dist/js/materialize.min.js ./dist/js",
     "build:front": "npm run mkdir && npm run rm:front && npm run move:front && npm run js",
-    "build:back": "npm run mkdir && browserify src/app.js -o dist/app.es5.js --full-paths=false --node -t [ babelify --presets [ es2015 ] ]",
+    "build:back": "npm run mkdir && browserify src/app.js -o dist/app.es5_new.js --full-paths=false --node -t [ babelify --presets [ es2015 ] ] && mv ./dist/app.es5_new.js ./dist/app.es5.js",
     "build": "npm run build:front && npm run build:back",
     "watch": "watch \"npm run css\" ./src/css | watch \"npm run views\" ./src/views | watch \"npm run js\" ./src/js",
     "dev": "npm run build:front && run-p -l watch nodemon",

@@ -23,19 +23,19 @@ class Deploy {
         var p = new Promise((resolve, reject) => {
             var repo = new git('./');
 
-            repo.exec('pull', null, function(err, stdout) {
+            repo.exec('pull', null, (err, stdout) => {
                 if (err) throw new Error(err)
-                var exec = require('child_process').exec
 
-                var command = 'npm build'
-                var cp = exec(command, function (err, out, code) {
-                    if (err instanceof Error) throw err
-                    process.exit(code)
-                })
-                cp.stderr.pipe(process.stderr)
-                cp.stdout.pipe(process.stdout)
-                // process.fork(`node ./tasks/start.js`, []);
+                var command = 'npm i && npm run build'
+                console.log('command', command)
                 resolve()
+                var cp = exec(command, (err, out, code) => {
+                    console.lg('out', out)
+                    console.lg('code', code)
+                    if (err instanceof Error) {
+                        console.log('err', err)
+                    }
+                })
             })
         })
 
