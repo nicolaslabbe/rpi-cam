@@ -30,8 +30,6 @@ class Deploy {
                 console.log('command', command)
                 resolve()
                 var cp = exec(command, (err, out, code) => {
-                    console.lg('out', out)
-                    console.lg('code', code)
                     if (err instanceof Error) {
                         console.log('err', err)
                     }
