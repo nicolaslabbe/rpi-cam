@@ -38,7 +38,7 @@ function make(req, res, options = {}) {
     }, time)
 }
 
-app.get('/deploy', (req, res) => {
+function deploy(req, res) {
 	Deploy.instance.run()
 		.then(() => {
 			res.set('Content-Type', 'application/json')
@@ -54,7 +54,10 @@ app.get('/deploy', (req, res) => {
 				messages: e.toString()
 			})
 		})
-});
+}
+
+app.get('/deploy', deploy)
+app.post('/deploy', deploy)
 
 app.get('/saturation', (req, res) => {
 	make(req, res, {saturation: -100})
