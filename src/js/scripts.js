@@ -6,8 +6,6 @@ $(document).ready(function(){
 	var imagesHolder = document.querySelector('[data-image="true"]')
 
 	function addImg(context) {
-		console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-		console.log('addImg', context)
 		var source = document.querySelector('#image-template').innerHTML
 		var template = Handlebars.compile(source);
 		var html    = template(context);
@@ -30,7 +28,7 @@ $(document).ready(function(){
 		actionBtn.classList.add('load')
 		loadBtn.classList.remove('hide')
 		$.ajax({
-			url: '/' + type,
+			url: service.replace(/\/$/, '') + '/' + type,
 			success: function (e) {
 				// cardImg.src = e.img
 				actionBtn.classList.remove('load')

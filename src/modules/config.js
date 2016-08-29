@@ -10,6 +10,13 @@ class Config {
 
     _init() {
         this._env = process.env.NODE_ENV || 'prod'
+        if (this._env !== 'prod') {
+            this._config = require('../config/config.json')
+        }else {
+            this._config = require('../config/prod.json')
+        }
+        console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+        console.log('this._config', this._config)
     }
 
     static get instance() {
@@ -21,6 +28,10 @@ class Config {
 
     get env() {
         return this._env
+    }
+
+    get config() {
+        return this._config
     }
 }
 

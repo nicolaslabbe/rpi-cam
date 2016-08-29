@@ -21,21 +21,19 @@ Handlebars.registerHelper('raw', helperRaw.instance.helper);
 
 function make(req, res, options = {}) {
 	var time = Config.instance.env === 'dev' ? 2000 : 0
-    setTimeout(() => {
-    	new Camera(options)
-		.then((img) => {
-			res.set('Content-Type', 'application/json')
-			res.send({
-				status: 'sucess',
-				images: [{
-					path: img
-				}]
-			})
+	new Camera(options)
+	.then((img) => {
+		res.set('Content-Type', 'application/json')
+		res.send({
+			status: 'sucess',
+			images: [{
+				path: img
+			}]
 		})
-		.catch((e) => {
-			return res.send(e.toString());
-		})
-    }, time)
+	})
+	.catch((e) => {
+		return res.send(e.toString());
+	})
 }
 
 function deploy(req, res) {
@@ -82,9 +80,10 @@ var template = Handlebars.compile(html, {noEscape: true})
 app.get('/', (req, res) => {
 	Images.instance.read()
 		.then((images) => {
-			console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-			console.log('images', images)
-			var tmp = template({images: images})
+			var tmp = template({
+				images: images,
+				service: Config.instance.config.url
+			})
 			res.set('Content-Type', 'text/html')
 			return res.send(tmp);
 		})
@@ -93,6 +92,6 @@ app.get('/', (req, res) => {
 		})
 });
 
-app.listen(port, function () {
-  console.log(`Example app listening on port ${port}!`);
+app.listen(Config.instance.config.port, function () {
+  console.log(`Example app listening on port ${Config.instance.config.port}!`);
 });

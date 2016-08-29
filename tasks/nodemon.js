@@ -23,7 +23,7 @@ nodemon({
     "docs/*"
   ],
   watch: [
-	'dist/*'
+	 'src/*'
   ],
   stdin: true,
   runOnChangeOnly: false,
