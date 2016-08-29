@@ -78,10 +78,11 @@ export default class Camera {
                     if (err instanceof Error) throw err
                       console.log('process.stderr: ' + err)
                       console.log('process.stdout:' + out)
-                      resolve({
+                      var result = {
                         path: options.url.replace(/\/$/, '') + webPath + name,
-                        cmd: cmd
-                      });
+                        cmd: raspistill
+                      }
+                      resolve(result);
                 })
                 cmd.stderr.pipe(process.stderr)
                 cmd.stdout.pipe(process.stdout)

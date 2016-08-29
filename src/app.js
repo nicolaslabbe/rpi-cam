@@ -62,28 +62,36 @@ app.post('/deploy', deploy)
 
 app.get('/saturation', (req, res) => {
 	make(req, res, {
-		saturation: -100,
-		url: req.protocol + '://' + req.get('host')
+		url: req.protocol + '://' + req.get('host'),
+		values: {
+			sa: -100
+		}
 	})
 });
 
 app.get('/sharpness', (req, res) => {
 	make(req, res, {
-		sharpness: -100,
-		url: req.protocol + '://' + req.get('host')
+		url: req.protocol + '://' + req.get('host'),
+		values: {
+			sa: -100
+		}
 	})
 });
 
 app.get('/brightness', (req, res) => {
 	make(req, res, {
-		brightness: 50,
-		url: req.protocol + '://' + req.get('host')
+		url: req.protocol + '://' + req.get('host'),
+		values: {
+			sa: -100
+		}
 	})
 });
 
 app.get('/reload', (req, res) => {
 	make(req, res,  {
-		url: req.protocol + '://' + req.get('host')
+		url: req.protocol + '://' + req.get('host'),
+		values: {
+		}
 	})
 });
 
@@ -105,8 +113,7 @@ app.get('/', (req, res) => {
 			return res.send(e.toString());
 		})
 });
-console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-console.log('Config.instance.config', Config.instance.config)
+
 app.listen(Config.instance.config.port, function () {
   console.log(`Example app listening on port ${Config.instance.config.port}!`);
 });
