@@ -62,14 +62,14 @@ export default class Camera {
                 --timeout
                 // https://www.raspberrypi.org/wp-content/uploads/2013/07/RaspiCam-Documentation.pdf
                 */
-                var raspistill = `/opt/vc/bin/raspistill -o ${saveTo} --width=100 --height=100`
+                var raspistill = `/opt/vc/bin/raspistill -o ${saveTo}`
                 console.log('cmd : ' + raspistill)
                 var cmd = exec(raspistill,
                     function (err, out, code) {
                     if (err instanceof Error) throw err
-                      process.stderr.write('process.stderr: ' + err)
-                      process.stdout.write('process.stdout:' + out)
-                      resolve(webPath + name);
+                      console.log('process.stderr: ' + err)
+                      console.log('process.stdout:' + out)
+                      resolve(options.url.replace(/\/$/, '') + webPath + name);
                 })
                 cmd.stderr.pipe(process.stderr)
                 cmd.stdout.pipe(process.stdout)
