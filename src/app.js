@@ -22,9 +22,7 @@ Handlebars.registerHelper('raw', helperRaw.instance.helper);
 function make(req, res, options = {}) {
 	var time = Config.instance.env === 'dev' ? 2000 : 0
 	new Camera(options)
-		.then((img) => {
-			console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-			console.log('here')
+		.then((result) => {
 			res.set({
 	          'Access-Control-Allow-Origin': '*',
 	          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
@@ -33,9 +31,7 @@ function make(req, res, options = {}) {
 	        })
 			res.send({
 				status: 'sucess',
-				images: [{
-					path: img
-				}]
+				images: [result]
 			})
 		})
 		.catch((e) => {

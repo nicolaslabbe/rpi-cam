@@ -15,17 +15,15 @@ export default class Camera {
             // console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
             // console.log('create file', __dirname + webPath + name)
 
-            // var defaultOptions = {
-            //     mode: "photo",
-            //     output: saveTo + name,
-            //     encoding: "jpg",
-            //     verbose: true,
-            //     timeout: 1000, // take the picture immediately
-            //     nopreview   : true,
-            //     w: 320,
-            //     h: 240,
-            //     q: 60
-            // }
+            var defaultOptions = {
+                ex: "auto",
+                e: "jpg",
+                v: null,
+                n: null,
+                w: 320,
+                h: 240,
+                q: 60
+            }
             // var defaultOptions = {
             //     mode: "photo",
             //     output: saveTo + name,
@@ -33,9 +31,20 @@ export default class Camera {
             // }
 
             // defaultOptions = extend(defaultOptions, options)
-
+            
+            var optionStr = ''
+            Array.prototype.forEach.call(Object.keys(defaultOptions), (key) => {
+                optionStr += `-${key}`
+                if(typeof defaultOptions[key] !== 'undefined' && defaultOptions[key] !== null) {
+                    optionStr += ` ${defaultOptions[key]}`
+                }
+                optionStr += ` `
+            })
             if (Config.instance.env === 'dev') {
-                resolve('https://i.ytimg.com/vi/cNycdfFEgBc/maxresdefault.jpg');
+                resolve({
+                    path:'https://i.ytimg.com/vi/cNycdfFEgBc/maxresdefault.jpg',
+                    cmd: 'fuck'
+                });
             }else {
                 /*
                 --sharpness -100 / 100
@@ -62,14 +71,17 @@ export default class Camera {
                 --timeout
                 // https://www.raspberrypi.org/wp-content/uploads/2013/07/RaspiCam-Documentation.pdf
                 */
-                var raspistill = `/opt/vc/bin/raspistill -o ${saveTo}`
+                var raspistill = `/opt/vc/bin/raspistill -o ${saveTo} ${optionStr}`
                 console.log('cmd : ' + raspistill)
                 var cmd = exec(raspistill,
                     function (err, out, code) {
                     if (err instanceof Error) throw err
                       console.log('process.stderr: ' + err)
                       console.log('process.stdout:' + out)
-                      resolve(options.url.replace(/\/$/, '') + webPath + name);
+                      resolve({
+                        path: options.url.replace(/\/$/, '') + webPath + name,
+                        cmd: cmd
+                      });
                 })
                 cmd.stderr.pipe(process.stderr)
                 cmd.stdout.pipe(process.stdout)
