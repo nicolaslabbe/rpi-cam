@@ -22,18 +22,25 @@ Handlebars.registerHelper('raw', helperRaw.instance.helper);
 function make(req, res, options = {}) {
 	var time = Config.instance.env === 'dev' ? 2000 : 0
 	new Camera(options)
-	.then((img) => {
-		res.set('Content-Type', 'application/json')
-		res.send({
-			status: 'sucess',
-			images: [{
-				path: img
-			}]
+		.then((img) => {
+			console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+			console.log('here')
+			res.set({
+	          'Access-Control-Allow-Origin': '*',
+	          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
+	          'Content-Type': 'application/json',
+	          'Cache-Control': 'public, max-age=' + 0
+	        })
+			res.send({
+				status: 'sucess',
+				images: [{
+					path: img
+				}]
+			})
 		})
-	})
-	.catch((e) => {
-		return res.send(e.toString());
-	})
+		.catch((e) => {
+			return res.send(e.toString());
+		})
 }
 
 function deploy(req, res) {
@@ -58,19 +65,30 @@ app.get('/deploy', deploy)
 app.post('/deploy', deploy)
 
 app.get('/saturation', (req, res) => {
-	make(req, res, {saturation: -100})
+	make(req, res, {
+		saturation: -100,
+		url: req.protocol + '://' + req.get('host')
+	})
 });
 
 app.get('/sharpness', (req, res) => {
-	make(req, res, {sharpness: -100})
+	make(req, res, {
+		sharpness: -100,
+		url: req.protocol + '://' + req.get('host')
+	})
 });
 
 app.get('/brightness', (req, res) => {
-	make(req, res, {brightness: 50})
+	make(req, res, {
+		brightness: 50,
+		url: req.protocol + '://' + req.get('host')
+	})
 });
 
 app.get('/reload', (req, res) => {
-	make(req, res)
+	make(req, res,  {
+		url: req.protocol + '://' + req.get('host')
+	})
 });
 
 var index = process.cwd() + '/dist/views/index.html'
