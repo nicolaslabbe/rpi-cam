@@ -30,7 +30,7 @@ export default class Camera {
             //     w: 180
             // }
 
-            // defaultOptions = extend(defaultOptions, options)
+            defaultOptions = extend(defaultOptions, options.values)
             
             var optionStr = ''
             Array.prototype.forEach.call(Object.keys(defaultOptions), (key) => {
