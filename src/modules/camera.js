@@ -33,7 +33,7 @@ export default class Camera {
             // }
 
             // defaultOptions = extend(defaultOptions, options)
-
+            
             if (Config.instance.env === 'dev') {
                 resolve('https://i.ytimg.com/vi/cNycdfFEgBc/maxresdefault.jpg');
             }else {
