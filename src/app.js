@@ -105,7 +105,8 @@ app.get('/', (req, res) => {
 			return res.send(e.toString());
 		})
 });
-
+console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+console.log('Config.instance.config', Config.instance.config)
 app.listen(Config.instance.config.port, function () {
   console.log(`Example app listening on port ${Config.instance.config.port}!`);
 });
