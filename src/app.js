@@ -41,9 +41,12 @@ function make(req, res, options = {}) {
 
 function take(req, res) {
 	var url = req.protocol + '://' + req.get('host')
-	var options = {}
+	var options = {
+		values: req.query,
+		url: url
+	}
 	
-	new Camera(req.query)
+	new Camera(options)
 		.then((result) => {
 			res.set({
 	          'Access-Control-Allow-Origin': '*',

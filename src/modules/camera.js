@@ -7,6 +7,8 @@ import {Promise} from 'es6-promise'
 
 export default class Camera {
     constructor(options = {}) {
+        console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
+        console.log('options', options)
         var p = new Promise((resolve, reject) => {
             var webPath = "/screenshot/"
             // var name = 'cam-' + new Date().getTime() + '.jpg'
