@@ -16,13 +16,58 @@ export default class Camera {
             // console.log('create file', __dirname + webPath + name)
 
             var defaultOptions = {
-                ex: "auto",
-                e: "jpg",
-                v: null,
-                n: null,
-                w: 320,
-                h: 240,
-                q: 60
+                // ,r: raw  : Add raw bayer data to jpeg metadata
+                // ,t: timeout  : Time (in ms) before takes picture and shuts down (if not specified, set to 5s)
+                // th: thumb    : Set thumbnail parameters (x:y:quality) or none
+                // x: exif  : EXIF tag to apply to captures (format as 'key=value') or none
+                // tl: timelapse    : Timelapse mode. Takes a picture every <t>ms. %d == frame number (Try: -o img_%04d.jpg)
+                // fp: fullpreview  : Run the preview using the still capture resolution (may reduce preview fps)
+                // k: keypress  : Wait between captures for a ENTER, X then ENTER to exit
+                // s: signal    : Wait between captures for a SIGUSR1 from another process
+                // g: gl    : Draw preview to texture instead of using video render component
+                // gc: glcapture    : Capture the GL frame-buffer instead of the camera image
+                // set: settings    : Retrieve camera settings and write to stdout
+                // cs: camselect    : Select camera <number>. Default 0
+                // bm: burst    : Enable 'burst capture mode'
+                // md: mode : Force sensor mode. 0=auto. See docs for other modes available
+                // dt: datetime : Replace output pattern (%d) with DateTime (MonthDayHourMinSec)
+                // ts: timestamp    : Replace output pattern (%d) with unix timestamp (seconds since 1970)
+                // fs: framestart   : Starting frame number in output pattern(%d)
+                ex: "auto"
+                ,e: "jpg"
+                ,v: null
+                ,n: null
+                ,w: 320
+                ,h: 240
+                ,q: 60
+                ,sa: 0
+                ,sh: 0
+                ,sh: 0
+                ,co: 0
+                ,br: 50
+                ,sa: 0
+                // ,ISO: Set capture ISO
+                // ,vs: Turn on video stabilisation
+                // ,ev: Set EV compensation - steps of 1/6 stop
+                ,ex: "auto" // off,night,nightpreview,backlight,spotlight,sports,snow,beach,verylong,fixedfps,antishake,fireworks
+                ,awb: "auto" // off,sun,cloud,shade,tungsten,fluorescent,incandescent,flash,horizon
+                ,ifx: "none" // negative,solarise,sketch,denoise,emboss,oilpaint,hatch,gpen,pastel,watercolour,film,blur,saturation,colourswap,washedout,posterise,colourpoint,colourbalance,cartoon
+                ,cfx: "average" // spot,backlit,matrix
+                ,mm: "off" // low,med,high
+                // ,rot: Set image rotation (0-359)
+                // ,hf: Set horizontal flip
+                // ,vf: Set vertical flip
+                // ,roi: Set region of interest (x,y,w,d as normalised coordinates [0.0-1.0])
+                // ,ss: Set shutter speed in microseconds
+                // ,awbg: Set AWB gains - AWB mode must be off
+                // ,drc: Set DRC Level
+                // ,st: Force recomputation of statistics on stills capture pass
+                // ,a: Enable/Set annotate flags or text
+                // ,3d: Select stereoscopic mode
+                // ,dec: Half width/height of stereo image
+                // ,3dswap: Swap camera order for stereoscopic
+                //ae: Set extra annotation parameters (text size, text colour(hex YUV), bg colour(hex YUV))
+
             }
             // var defaultOptions = {
             //     mode: "photo",
