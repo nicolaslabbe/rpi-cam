@@ -39,6 +39,28 @@ function make(req, res, options = {}) {
 		})
 }
 
+function take(req, res) {
+	var url = req.protocol + '://' + req.get('host')
+	var options = {}
+	
+	new Camera(req.query)
+		.then((result) => {
+			res.set({
+	          'Access-Control-Allow-Origin': '*',
+	          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
+	          'Content-Type': 'application/json',
+	          'Cache-Control': 'public, max-age=' + 0
+	        })
+			res.send({
+				status: 'sucess',
+				images: [result]
+			})
+		})
+		.catch((e) => {
+			return res.send(e.toString());
+		})
+}
+
 function deploy(req, res) {
 	Deploy.instance.run()
 		.then(() => {
@@ -93,6 +115,10 @@ app.get('/reload', (req, res) => {
 		values: {
 		}
 	})
+});
+
+app.get('/take*', (req, res) => {
+	take(req, res)
 });
 
 var index = process.cwd() + '/dist/views/index.html'
