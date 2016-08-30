@@ -1,5 +1,5 @@
 import extend from 'extend'
-import {exec} from 'child_process'
+import {spawn} from 'child_process'
 // import RaspiCam from 'raspicam'
 import fs from 'fs'
 import Config from './config'
@@ -7,9 +7,8 @@ import {Promise} from 'es6-promise'
 
 export default class Camera {
     constructor(options = {}) {
-        console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-        console.log('options', options)
         var p = new Promise((resolve, reject) => {
+            
             var webPath = "/screenshot/"
             // var name = 'cam-' + new Date().getTime() + '.jpg'
             var name = 'cam-' + new Date().getTime() + '.jpg'
@@ -42,20 +41,21 @@ export default class Camera {
                 ,w: 320
                 ,h: 240
                 ,q: 60
-                ,sa: 0
-                ,sh: 0
-                ,sh: 0
-                ,co: 0
-                ,br: 50
-                ,sa: 0
+                ,sa: 0 // 100 = plus couleur / -100 pas de couleur (noir et blanc)
+                ,sh: 0 // sharpness
+                ,co: 0 // 100 = plus couleur / -100 pas de couleur (gris complete)
+                ,br: 50 // 100 tout blanc / 0 tout noir
+                
                 // ,ISO: Set capture ISO
                 // ,vs: Turn on video stabilisation
                 // ,ev: Set EV compensation - steps of 1/6 stop
-                ,ex: "auto" // off,night,nightpreview,backlight,spotlight,sports,snow,beach,verylong,fixedfps,antishake,fireworks
-                ,awb: "auto" // off,sun,cloud,shade,tungsten,fluorescent,incandescent,flash,horizon
+                
+                // ,ex: "auto" // off,night,nightpreview,backlight,spotlight,sports,snow,beach,verylong,fixedfps,antishake,fireworks
+                // ,awb: "auto" // off,sun,cloud,shade,tungsten,fluorescent,incandescent,flash,horizon
                 ,ifx: "none" // negative,solarise,sketch,denoise,emboss,oilpaint,hatch,gpen,pastel,watercolour,film,blur,saturation,colourswap,washedout,posterise,colourpoint,colourbalance,cartoon
-                ,cfx: "average" // spot,backlit,matrix
-                ,mm: "off" // low,med,high
+                // ,cfx: "average" // spot,backlit,matrix
+
+                // ,mm: "off" // low,med,high
                 // ,rot: Set image rotation (0-359)
                 // ,hf: Set horizontal flip
                 // ,vf: Set vertical flip
@@ -80,12 +80,15 @@ export default class Camera {
             defaultOptions = extend(defaultOptions, options.values)
             
             var optionStr = ''
+            var optionArr = ['-o', `${saveTo}`]
             Array.prototype.forEach.call(Object.keys(defaultOptions), (key) => {
-                optionStr += `-${key}`
-                if(typeof defaultOptions[key] !== 'undefined' && defaultOptions[key] !== null) {
-                    optionStr += ` ${defaultOptions[key]}`
+                var str = `-${key}`
+                if(typeof defaultOptions[key] !== 'undefined' && defaultOptions[key] !== null
+                    && defaultOptions[key] !== "null") {
+                    str += ` ${defaultOptions[key]}`
                 }
-                optionStr += ` `
+                optionStr += `${str} `
+                optionArr = optionArr.concat(str.split(' '))
             })
             if (Config.instance.env === 'dev') {
                 resolve({
@@ -93,46 +96,36 @@ export default class Camera {
                     cmd: 'fuck'
                 });
             }else {
-                /*
-                --sharpness -100 / 100
-                --contrast -100 / 100
-                --brightness 0 / 100
-                --saturation -100 / 100
-                --ISO 100 / 800
-                --vstab (video)
-                --ev -10 / 10
-                --exposure off / auto / night / nightpreview / backlight / spotlight / sports / snow / beach / verylong / fixedfps / antishake / fireworks
-                ---awb off / auto / sun / cloudshade / tungsten / fluorescent / incandescent / flash / horizon
-                --imxfx none / negative / solarise / whiteboard / blackboard / sketch / denoise / emboss / oilpaint / hatch / gpen / pastel / watercolour / film / blur / saturation / colourswap / washedout / posterise / colourpoint / colourbalance / cartoon
-                --colfx 0 to 255 128:128
-                --rotation 0-359
-                --hflip
-                --vflip
-                --roi 0.5,0.5,0.25,0.25
-                --width
-                --height
-                --quality
-                --raw
-                --output
-                --verbose
-                --timeout
-                // https://www.raspberrypi.org/wp-content/uploads/2013/07/RaspiCam-Documentation.pdf
-                */
                 var raspistill = `/opt/vc/bin/raspistill -o ${saveTo} ${optionStr}`
                 console.log('cmd : ' + raspistill)
-                var cmd = exec(raspistill,
-                    function (err, out, code) {
-                    if (err instanceof Error) throw err
-                      console.log('process.stderr: ' + err)
-                      console.log('process.stdout:' + out)
-                      var result = {
-                        path: options.url.replace(/\/$/, '') + webPath + name,
-                        cmd: raspistill
-                      }
-                      resolve(result);
-                })
-                cmd.stderr.pipe(process.stderr)
-                cmd.stdout.pipe(process.stdout)
+
+                try {
+                    var raspistillCmd = spawn('/opt/vc/bin/raspistill', optionArr)
+
+                    raspistillCmd.stdout.on('data', (data) => {
+                      console.log('stdout', data.toString())
+                    });
+
+                    raspistillCmd.stderr.on('data', (data) => {
+                        console.log('stderr', data.toString())
+                    });
+
+                    raspistillCmd.on('close', (code, err) => {
+                        console.log(`child process exited with code`, code);
+                        var result = {
+                            code: code
+                        }
+                        if (code === 0) {
+                            result.path = options.url.replace(/\/$/, '') + webPath + name
+                            result.cmd = raspistill
+                        }else {
+                            result.error = err
+                        }
+                          resolve(result);
+                    });
+                } catch(e) {
+                    resolve({path: null, cmd: cmd});
+                }
             }
         })
 
