@@ -19,26 +19,6 @@ app.set('view engine', 'html')
 Handlebars.registerHelper('toJSON', helperJson.instance.helper);
 Handlebars.registerHelper('raw', helperRaw.instance.helper);
 
-function make(req, res, options = {}) {
-	var time = Config.instance.env === 'dev' ? 2000 : 0
-	new Camera(options)
-		.then((result) => {
-			res.set({
-	          'Access-Control-Allow-Origin': '*',
-	          'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
-	          'Content-Type': 'application/json',
-	          'Cache-Control': 'public, max-age=' + 0
-	        })
-			res.send({
-				status: 'sucess',
-				images: [result]
-			})
-		})
-		.catch((e) => {
-			return res.send(e.toString());
-		})
-}
-
 function take(req, res) {
 	var url = req.protocol + '://' + req.get('host')
 	var options = {
@@ -85,41 +65,6 @@ function deploy(req, res) {
 app.get('/deploy', deploy)
 app.post('/deploy', deploy)
 
-app.get('/saturation', (req, res) => {
-	make(req, res, {
-		url: req.protocol + '://' + req.get('host'),
-		values: {
-			sa: -100
-		}
-	})
-});
-
-app.get('/sharpness', (req, res) => {
-	make(req, res, {
-		url: req.protocol + '://' + req.get('host'),
-		values: {
-			sa: -100
-		}
-	})
-});
-
-app.get('/brightness', (req, res) => {
-	make(req, res, {
-		url: req.protocol + '://' + req.get('host'),
-		values: {
-			sa: -100
-		}
-	})
-});
-
-app.get('/reload', (req, res) => {
-	make(req, res,  {
-		url: req.protocol + '://' + req.get('host'),
-		values: {
-		}
-	})
-});
-
 app.get('/take*', (req, res) => {
 	take(req, res)
 });
@@ -131,6 +76,11 @@ var template = Handlebars.compile(html, {noEscape: true})
 app.get('/', (req, res) => {
 	Images.instance.read()
 		.then((images) => {
+			if (Config.instance.env === 'dev') {
+				index = process.cwd() + '/dist/views/index.html'
+				html = fs.readFileSync(index, 'utf8')
+				template = Handlebars.compile(html, {noEscape: true})
+			}
 			var tmp = template({
 				images: images,
 				service: Config.instance.config.url

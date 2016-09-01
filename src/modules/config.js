@@ -15,8 +15,6 @@ class Config {
         }else {
             this._config = require('../config/prod.json')
         }
-        console.log('* * * * * * * * * * * * * * * * * * * * * * * * * * * * *')
-        console.log('this._config', this._config)
     }
 
     static get instance() {

@@ -9,6 +9,78 @@ body {
   100%{ opacity: 0; transform: rotate(360deg); }
 }
 
+.fixed-action-btn {
+    left: 50%;
+    transform: translate(-50%, -50%);
+    bottom: 20px;
+    display: inline-block;
+    width: 55px;
+}
+
+.fixed-action-btn.menu-settings {
+    bottom: 20px;
+    width: 300px;
+    height: 175px;
+}
+
+.fixed-action-btn .btn-settings {
+	position: absolute;
+	left: 50%;
+	transform: translate(-50%, 0px);
+}
+
+.fixed-action-btn .btn-settings.btn-take {
+	position: absolute;
+	left: 50%;
+	transform: translate(-50%, 0px);
+}
+
+.fixed-action-btn .btn-settings.btn-search {
+	position: absolute;
+	left: 15%;
+	bottom: 5%;
+	top: inherit;
+	transform: translate(-50%, 0px);
+}
+
+.fixed-action-btn .btn-settings.btn-advanced {
+	position: absolute;
+	left: 85%;
+	bottom: 5%;
+	top: inherit;
+	transform: translate(-50%, 0px);
+}
+
+.fixed-action-btn .btn-top,
+.fixed-action-btn .btn-top .material-icons {
+	line-height: 50px;
+	height: 50px;
+	width: 50px;
+}
+
+.hide-setting .menu-bottom .settings { display: block; }
+.hide-setting .menu-bottom .clear { display: none; }
+
+.show-setting .menu-bottom .settings { display: none; }
+.show-setting .menu-bottom .clear { display: block; }
+
+.show-setting .menu-bottom {
+	bottom: 55px;
+	height: 35.5px;
+	width: 35.5px;
+	line-height: 35.5px;
+}
+.show-setting .menu-bottom .btn-floating,
+.show-setting .menu-bottom .btn-floating .material-icons {
+	height: 35.5px;
+	width: 35.5px;
+	line-height: 35.5px;
+}
+
+.menu-bottom .btn-floating {
+	transition-property: none;
+}
+
 .fixed-action-btn.load .btn-floating.btn-large {
 	box-shadow: none;
 	opacity: 1;
@@ -33,4 +105,41 @@ body {
 [data-btn-load=true] .preloader-wrapper {
     width: 55px;
     height: 55px;
+}
+
+@keyframes fadeInOverlay {
+  0%   { opacity: 0; top: 0px; }
+  100% { opacity: 1; top: -50%; }
+}
+
+@keyframes fadeOffOverlay {
+  0%   { left: 0px; opacity: 1; top: -50%; }
+  100% { left: 0px; opacity: 0; top: 0px; }
+}
+
+.overlay-settings {
+	position: fixed;
+	/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#fffde7+0,f8bbd0+50,ef5350+100 */
+	background: #fffde7; /* Old browsers */
+	background: -moz-linear-gradient(45deg,  #fffde7 0%, #f8bbd0 50%, #ef5350 100%); /* FF3.6-15 */
+	background: -webkit-linear-gradient(45deg,  #fffde7 0%,#f8bbd0 50%,#ef5350 100%); /* Chrome10-25,Safari5.1-6 */
+	background: linear-gradient(45deg,  #fffde7 0%,#f8bbd0 50%,#ef5350 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	z-index: 2;
+    width: 100%;
+    height: 150%;
+    top: 0px;
+}
+
+.hide-setting .overlay-settings {
+    left: -100%;
+    opacity: 0;
+    top: 0px;
+    animation: fadeOffOverlay .25s ease-in-out;
+}
+
+.show-setting .overlay-settings {
+    left: 0px;
+    opacity: 1;
+    top: -50%;
+    animation: fadeInOverlay .25s ease-in-out;
 }

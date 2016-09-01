@@ -23,7 +23,9 @@ nodemon({
     "docs/*"
   ],
   watch: [
-	 'src/**/*.*'
+   'src/app.js'
+   ,'src/modules/*.*'
+	 ,'src/config/*.*'
   ],
   stdin: true,
   runOnChangeOnly: false,

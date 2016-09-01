@@ -30,7 +30,6 @@ $(document).ready(function(){
 		$.ajax({
 			url: service.replace(/\/$/, '') + '/' + type,
 			success: function (e) {
-				// cardImg.src = e.img
 				actionBtn.classList.remove('load')
 				actionBtn.classList.add('done')
 				loadBtn.classList.add('hide')
@@ -39,28 +38,26 @@ $(document).ready(function(){
 		});
 	}
 	
+	var overlaySettings = document.querySelector('[data-overlay-settings="true"]')
+	var body = document.querySelector('body')
+	function showOverlay() {
+		if (body.classList.contains('hide-setting')) {
+			body.classList.remove('hide-setting')
+			body.classList.add('show-setting')
+		}else {
+			body.classList.remove('show-setting')
+			body.classList.add('hide-setting')
+		}
+	}
+	
 	var actionBtn = document.querySelector('[data-btn-action="true"]')
 	var loadBtn = document.querySelector('[data-btn-load="true"]')
-	var cardImg = document.querySelector('[data-card-img="true"]')
+	// var cardImg = document.querySelector('[data-card-img="true"]')
 
-	var reload = document.querySelector('[data-reload="true"]')
-	reload.addEventListener('click', function (e) {
-		newImg('reload')
-	})
-
-	var sharpness = document.querySelector('[data-reload-sharpness="true"]')
-	sharpness.addEventListener('click', function (e) {
-		newImg('sharpness')
-	})
-
-	var brightness = document.querySelector('[data-reload-brightness="true"]')
-	brightness.addEventListener('click', function (e) {
-		newImg('brightness')
-	})
-
-	var saturation = document.querySelector('[data-reload-saturation="true"]')
-	saturation.addEventListener('click', function (e) {
-		newImg('saturation')
+	var actionBtn = document.querySelector('[data-btn-action="true"]')
+	actionBtn.addEventListener('click', function (e) {
+		// newImg('take')
+		showOverlay()
 	})
 
 	addImg({images: images})
