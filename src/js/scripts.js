@@ -40,13 +40,14 @@ $(document).ready(function(){
 	
 	var overlaySettings = document.querySelector('[data-overlay-settings="true"]')
 	var body = document.querySelector('body')
-	function showOverlay() {
-		if (body.classList.contains('hide-setting')) {
-			body.classList.remove('hide-setting')
-			body.classList.add('show-setting')
-		}else {
+	body.classList.contains('hide-setting')
+	function toggleOverlay() {
+		if (body.classList.contains('show-setting')) {
 			body.classList.remove('show-setting')
 			body.classList.add('hide-setting')
+		}else {
+			body.classList.remove('hide-setting')
+			body.classList.add('show-setting')
 		}
 	}
 	
@@ -57,7 +58,13 @@ $(document).ready(function(){
 	var actionBtn = document.querySelector('[data-btn-action="true"]')
 	actionBtn.addEventListener('click', function (e) {
 		// newImg('take')
-		showOverlay()
+		toggleOverlay()
+	})
+
+	var actionTake = document.querySelector('[data-take="true"]')
+	actionTake.addEventListener('click', function (e) {
+		toggleOverlay()
+		newImg('take')
 	})
 
 	addImg({images: images})

@@ -18,44 +18,29 @@ body {
 }
 
 .fixed-action-btn.menu-settings {
+	z-index: 2;
     bottom: 20px;
-    width: 300px;
-    height: 175px;
+    width: 80%;
+    height: 30%;
+    max-width: 300px;
+    max-height: 175px;
 }
 
 .fixed-action-btn .btn-settings {
+	display: none;
 	position: absolute;
 	left: 50%;
-	transform: translate(-50%, 0px);
+	z-index: 2;
 }
 
-.fixed-action-btn .btn-settings.btn-take {
-	position: absolute;
-	left: 50%;
-	transform: translate(-50%, 0px);
+.fixed-action-btn .btn-settings .material-icons {
+	background: #fff;
+	color: #42A5F5;
 }
 
-.fixed-action-btn .btn-settings.btn-search {
-	position: absolute;
-	left: 15%;
-	bottom: 5%;
-	top: inherit;
-	transform: translate(-50%, 0px);
-}
-
-.fixed-action-btn .btn-settings.btn-advanced {
-	position: absolute;
-	left: 85%;
-	bottom: 5%;
-	top: inherit;
-	transform: translate(-50%, 0px);
-}
-
-.fixed-action-btn .btn-top,
-.fixed-action-btn .btn-top .material-icons {
-	line-height: 50px;
-	height: 50px;
-	width: 50px;
+.show-setting .fixed-action-btn .btn-settings,
+.hide-setting .fixed-action-btn .btn-settings {
+	display: block;
 }
 
 .hide-setting .menu-bottom .settings { display: block; }
@@ -64,27 +49,107 @@ body {
 .show-setting .menu-bottom .settings { display: none; }
 .show-setting .menu-bottom .clear { display: block; }
 
-.show-setting .menu-bottom {
+/*.show-setting .menu-bottom {
 	bottom: 55px;
-	height: 35.5px;
-	width: 35.5px;
-	line-height: 35.5px;
+	height: 35px;
+	width: 35px;
+	line-height: 35px;
 }
 .show-setting .menu-bottom .btn-floating,
 .show-setting .menu-bottom .btn-floating .material-icons {
-	height: 35.5px;
-	width: 35.5px;
-	line-height: 35.5px;
-}
+	height: 35px;
+	width: 35px;
+	line-height: 35px;
+}*/
 
 .menu-bottom .btn-floating {
-	transition-property: none;
+	/* transition-property: none; */
 }
 
 .fixed-action-btn.load .btn-floating.btn-large {
 	box-shadow: none;
 	opacity: 1;
 	animation: loadHide 0.5s ease-out forwards;
+}
+
+@keyframes btnInOpenSettingsAnimate {
+  0%   { transform: scale(0.3) translate(-50%, 0px); top: 100%; }
+  100% { transform: scale(1) translate(-50%, 0px); top: 20%; }
+}
+
+@keyframes btnOffOpenSettingsAnimate {
+  0% { transform: scale(1) translate(-50%, 0px); top: 20%; }
+  100%   { transform: scale(0.3) translate(-50%, 0px); top: 100%; }
+}
+.show-setting .fixed-action-btn .open-settings { animation: btnInOpenSettingsAnimate .25s ease-in-out forwards; transform: scale(1) translate(-50%, 0px); top: 20%; box-shadow: 0 0px 3px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15); }
+.hide-setting .fixed-action-btn .open-settings { animation: btnOffOpenSettingsAnimate .25s ease-in-out forwards; transform: scale(0.3) translate(-50%, 0px); top: 100%; }
+
+.show-setting .fixed-action-btn .open-settings { box-shadow: 0 0px 3px 0 rgba(0,0,0,0.18),0 4px 15px 0 rgba(0,0,0,0.15); }
+.show-setting .fixed-action-btn .open-settings .material-icons { background: #fff !important; color: #42A5F5 !important;}
+
+.fixed-action-btn .btn-settings.btn-take {
+	position: absolute;
+	left: 50%;
+	top: 20%;
+	transform: translate(-50%, 0px);
+    transform-origin: top left;
+}
+@keyframes btnInTakeAnimate {
+  0%   { transform: scale(0.3) translate(-50%, 0px); top: 100%; }
+  100% { transform: scale(1) translate(-50%, 0px); top: 20%; }
+}
+
+@keyframes btnOffTakeAnimate {
+  0% { transform: scale(1) translate(-50%, 0px); top: 20%; }
+  100%   { transform: scale(0.3) translate(-50%, 0px); top: 100%; }
+}
+.show-setting .fixed-action-btn .btn-settings.btn-take { animation: btnInTakeAnimate .25s ease-in-out forwards; transform: scale(1) translate(-50%, 0px); top: 20%; }
+.hide-setting .fixed-action-btn .btn-settings.btn-take { animation: btnOffTakeAnimate .25s ease-in-out forwards; transform: scale(0.3) translate(-50%, 0px); top: 100%; }
+
+.fixed-action-btn .btn-settings.btn-search {
+	position: absolute;
+	left: 15%;
+	top: 80%;
+	transform: translate(-50%, 0px);
+    transform-origin: top left;
+}
+
+@keyframes btnInSearchAnimate {
+  0%   { transform: scale(0.3) translate(-50%, 0px); left: 50%; top: 100%; }
+  100% { transform: scale(1) translate(-50%, 0px); left: 15%; top: 80%; }
+}
+
+@keyframes btnOffSearchAnimate {
+  0% { transform: scale(1) translate(-50%, 0px); left: 15%; top: 80%; }
+  100%   { transform: scale(0.3) translate(-50%, 0px); left: 50%; top: 100%; }
+}
+.show-setting .fixed-action-btn .btn-settings.btn-search { animation: btnInSearchAnimate .25s ease-in-out forwards; transform: scale(1) translate(-50%, 0px); left: 15%; top: 80%; }
+.hide-setting .fixed-action-btn .btn-settings.btn-search { animation: btnOffSearchAnimate .25s ease-in-out forwards; transform: scale(0.3) translate(-50%, 0px); left: 50%; top: 100%; }
+
+.fixed-action-btn .btn-settings.btn-advanced {
+	position: absolute;
+	left: 85%;
+	top: 80%;
+	transform: translate(-50%, 0px);
+    transform-origin: top left;
+}
+@keyframes btnInAdvancedAnimate {
+  0%   { transform: scale(0.3) translate(-50%, 0px); left: 50%; top: 100%; }
+  100% { transform: scale(1) translate(-50%, 0px); left: 85%; top: 80%; }
+}
+
+@keyframes btnOffAdvancedAnimate {
+  0% { transform: scale(1) translate(-50%, 0px); left: 85%; top: 80%; }
+  100%   { transform: scale(0.3) translate(-50%, 0px); left: 50%; top: 100%; }
+}
+.show-setting .fixed-action-btn .btn-settings.btn-advanced { animation: btnInAdvancedAnimate .25s ease-in-out forwards; transform: scale(1) translate(-50%, 0px); left: 85%; top: 80%; }
+.hide-setting .fixed-action-btn .btn-settings.btn-advanced { animation: btnOffAdvancedAnimate .25s ease-in-out forwards; transform: scale(0.3) translate(-50%, 0px); left: 50%; top: 100%; }
+
+.fixed-action-btn .btn-top,
+.fixed-action-btn .btn-top .material-icons {
+	line-height: 50px;
+	height: 50px;
+	width: 50px;
 }
 
 @keyframes loadDone {
@@ -118,12 +183,9 @@ body {
 }
 
 .overlay-settings {
+	display: none;
 	position: fixed;
-	/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#fffde7+0,f8bbd0+50,ef5350+100 */
-	background: #fffde7; /* Old browsers */
-	background: -moz-linear-gradient(45deg,  #fffde7 0%, #f8bbd0 50%, #ef5350 100%); /* FF3.6-15 */
-	background: -webkit-linear-gradient(45deg,  #fffde7 0%,#f8bbd0 50%,#ef5350 100%); /* Chrome10-25,Safari5.1-6 */
-	background: linear-gradient(45deg,  #fffde7 0%,#f8bbd0 50%,#ef5350 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	background: #42A5F5;
 	z-index: 2;
     width: 100%;
     height: 150%;
@@ -131,6 +193,7 @@ body {
 }
 
 .hide-setting .overlay-settings {
+	display: block;
     left: -100%;
     opacity: 0;
     top: 0px;
@@ -138,6 +201,7 @@ body {
 }
 
 .show-setting .overlay-settings {
+	display: block;
     left: 0px;
     opacity: 1;
     top: -50%;
